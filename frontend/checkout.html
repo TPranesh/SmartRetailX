@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>New Order — SmartRetailX</title>
+  <meta name="description" content="Place a new B2B purchase order on the SmartRetailX platform." />
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    .checkout-layout {
+      display: grid;
+      grid-template-columns: 1fr 360px;
+      gap: var(--sp-6);
+      align-items: start;
+    }
+
+    .order-line {
+      display: flex;
+      align-items: center;
+      gap: var(--sp-4);
+      padding: var(--sp-4) 0;
+      border-bottom: 1px solid var(--color-slate-100);
+    }
+
+    .order-line:last-child { border-bottom: none; }
+
+    .order-line-name { flex: 1; font-size: var(--text-sm); font-weight: 500; color: var(--color-navy); }
+    .order-line-sub  { font-size: var(--text-xs); color: var(--color-slate-400); }
+
+    .order-line-qty {
+      display: flex;
+      align-items: center;
+      gap: var(--sp-2);
+    }
+
+    .qty-btn {
+      width: 28px; height: 28px;
+      border: 1px solid var(--color-slate-200);
+      border-radius: var(--radius-sm);
+      background: var(--color-white);
+      cursor: pointer;
+      font-size: 1rem;
+      display: flex; align-items: center; justify-content: center;
+      transition: background-color var(--trans-fast);
+    }
+    .qty-btn:hover { background: var(--color-slate-100); }
+
+    .qty-display { min-width: 30px; text-align: center; font-size: var(--text-sm); font-weight: 600; }
+
+    .order-line-total {
+      font-size: var(--text-sm);
+      font-weight: 600;
+      color: var(--color-navy);
+      min-width: 72px;
+      text-align: right;
+    }
+
+    .remove-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--color-slate-400);
+      font-size: 1.1rem;
+      padding: var(--sp-1);
+      border-radius: var(--radius-sm);
+      transition: color var(--trans-fast);
+    }
+    .remove-btn:hover { color: var(--color-danger); }
+
+    .summary-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: var(--sp-3) 0;
+      font-size: var(--text-sm);
+      color: var(--color-slate-500);
+    }
+
+    .summary-total {
+      font-size: var(--text-lg);
+      font-weight: 700;
+      color: var(--color-navy);
+      padding-top: var(--sp-4);
+      border-top: 2px solid var(--color-navy);
+    }
+
+    .empty-cart {
+      text-align: center;
+      padding: var(--sp-10) var(--sp-6);
+      color: var(--color-slate-400);
+    }
+
+    .empty-cart-icon { font-size: 3rem; margin-bottom: var(--sp-4); opacity: 0.35; }
+
+    @media (max-width: 768px) {
+      .checkout-layout { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body class="page-wrapper">
+
+  <div id="toast-container"></div>
+
+  <!-- Topbar -->
+  <header class="topbar">
+    <div class="container topbar-inner">
+      <a href="index.html" class="topbar-brand">
+        <div class="topbar-brand-icon">
+          <svg viewBox="0 0 20 20"><path d="M3 3h14v2H3V3zm0 4h14v2H3V7zm0 4h8v2H3v-2zm0 4h6v2H3v-2zm10-4h4v6h-4v-6z"/></svg>
+        </div>
+        <span class="topbar-brand-name">SmartRetailX</span>
+        <span class="topbar-brand-tag">Enterprise</span>
+      </a>
+      <nav class="topbar-nav">
+        <a href="index.html">Sign In</a>
+        <a href="catalog.html">Product Catalogue</a>
+        <a href="checkout.html" class="active">New Order</a>
+        <a href="admin.html">Admin</a>
+      </nav>
+      <div class="topbar-actions">
+        <span id="session-display" style="font-size:var(--text-xs);color:var(--color-slate-400);"></span>
+      </div>
+    </div>
+  </header>
+
+  <main class="page-content">
+    <div class="container">
+
+      <div class="page-header">
+        <div class="page-header-row">
+          <div>
+            <h1>Place New Order</h1>
+            <p>Review items, enter shipping details, and submit to the Order Processing Service.</p>
+          </div>
+          <div>
+            <span class="service-dot checking" id="dot-order"></span>
+            <span style="font-size:var(--text-xs);color:var(--color-slate-400);">Order Service :8003</span>
+            &nbsp;&nbsp;
+            <span class="service-dot checking" id="dot-inventory"></span>
+            <span style="font-size:var(--text-xs);color:var(--color-slate-400);">Inventory :8004</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="checkout-layout">
+
+        <!-- Left: Order Form + Line Items -->
+        <div>
+          <!-- Order Details -->
+          <div class="card mb-6">
+            <div class="card-header">
+              <span class="card-title">Order Details</span>
+            </div>
+            <div class="card-body">
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label" for="o-user-id">User ID <span class="required">*</span></label>
+                  <input class="form-control" type="number" id="o-user-id" placeholder="e.g. 1" min="1" required />
+                  <span class="form-hint">Phase 2: Auto-populated from the decoded JWT claim.</span>
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="o-address">Shipping Address</label>
+                  <input class="form-control" type="text" id="o-address" placeholder="123 Main St, London, UK" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Add Items Manually -->
+          <div class="card mb-6">
+            <div class="card-header">
+              <span class="card-title">Order Line Items</span>
+              <button class="btn btn-secondary btn-sm" onclick="openAddItemModal()">+ Add Item</button>
+            </div>
+            <div class="card-body" id="cart-body">
+              <div class="empty-cart" id="empty-cart-msg">
+                <div class="empty-cart-icon">🛒</div>
+                <p>Your order is empty.<br>Add items from the <a href="catalog.html">Product Catalogue</a> or use the button above.</p>
+              </div>
+              <div id="cart-items"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Order Summary & Submit -->
+        <div>
+          <div class="card" style="position:sticky;top:72px;">
+            <div class="card-header"><span class="card-title">Order Summary</span></div>
+            <div class="card-body">
+              <div id="summary-lines"></div>
+              <div class="divider" style="margin: var(--sp-3) 0;"></div>
+              <div class="summary-row summary-total">
+                <span>Total</span>
+                <span id="summary-total">£0.00</span>
+              </div>
+            </div>
+            <div style="padding: var(--sp-4) var(--sp-6); border-top: 1px solid var(--color-slate-200);">
+              <div id="submit-error" class="alert alert-danger mb-4" style="display:none;"></div>
+              <div id="submit-success" class="alert alert-success mb-4" style="display:none;"></div>
+              <button class="btn btn-primary btn-lg" id="btn-submit-order" style="width:100%;" onclick="submitOrder()">
+                Submit Order
+              </button>
+              <p class="text-muted text-xs mt-4" style="text-align:center;">
+                Submitting calls POST /orders on the Order Service and POST /events/order-placed on the Inventory Service.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Add Item Modal -->
+  <div class="modal-overlay" id="modal-add-item">
+    <div class="modal">
+      <div class="modal-header">
+        <span class="modal-title">Add Line Item</span>
+        <button class="modal-close" onclick="closeModal('modal-add-item')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label" for="item-product-id">Product ID <span class="required">*</span></label>
+          <input class="form-control" type="number" id="item-product-id" min="1" />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="item-product-name">Product Name <span class="required">*</span></label>
+          <input class="form-control" type="text" id="item-product-name" placeholder="Enterprise SSD 2TB" />
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="item-qty">Quantity <span class="required">*</span></label>
+            <input class="form-control" type="number" id="item-qty" min="1" value="1" />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="item-price">Unit Price (£) <span class="required">*</span></label>
+            <input class="form-control" type="number" id="item-price" step="0.01" min="0.01" />
+          </div>
+        </div>
+        <div id="add-item-error" class="alert alert-danger" style="display:none;"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('modal-add-item')">Cancel</button>
+        <button class="btn btn-primary" onclick="addItemToCart()">Add to Order</button>
+      </div>
+    </div>
+  </div>
+
+  <footer class="page-footer">
+    <div class="container page-footer-inner">
+      <span>Order Service on <code class="text-mono" style="font-size:var(--text-xs);">localhost:8003</code> &mdash; Inventory Service on <code class="text-mono" style="font-size:var(--text-xs);">localhost:8004</code></span>
+      <div class="footer-links">
+        <a href="http://localhost:8003/docs" target="_blank">Order Swagger</a>
+        <a href="http://localhost:8004/docs" target="_blank">Inventory Swagger</a>
+      </div>
+    </div>
+  </footer>
+
+  <script src="api.js"></script>
+  <script>
+    // ── Session & RBAC nav ────────────────────────────────────────────────────
+    applyRbacNav();
+    const user = session.load();
+    if (user) {
+      document.getElementById('session-display').textContent = `${user.email} (${user.role})`;
+      document.getElementById('o-user-id').value = user.user_id || '';
+    }
+
+    checkServiceHealth(API.ORDER,     'dot-order');
+    checkServiceHealth(API.INVENTORY, 'dot-inventory');
+
+    // ── Cart State ─────────────────────────────────────────────────────────────
+    let cart = JSON.parse(sessionStorage.getItem('srx_cart') || '[]');
+
+    function saveCart() { sessionStorage.setItem('srx_cart', JSON.stringify(cart)); }
+
+    function renderCart() {
+      const container = document.getElementById('cart-items');
+      const emptyMsg  = document.getElementById('empty-cart-msg');
+      const summaryLines = document.getElementById('summary-lines');
+      const totalEl = document.getElementById('summary-total');
+
+      if (cart.length === 0) {
+        emptyMsg.style.display = 'block';
+        container.innerHTML = '';
+        summaryLines.innerHTML = `<p class="text-muted text-sm">No items added yet.</p>`;
+        totalEl.textContent = '£0.00';
+        return;
+      }
+
+      emptyMsg.style.display = 'none';
+
+      container.innerHTML = cart.map((item, idx) => `
+        <div class="order-line">
+          <div style="flex:1">
+            <div class="order-line-name">${escHtml(item.product_name)}</div>
+            <div class="order-line-sub">ID: ${item.product_id} &mdash; ${formatCurrency(item.unit_price)} each</div>
+          </div>
+          <div class="order-line-qty">
+            <button class="qty-btn" onclick="changeQty(${idx}, -1)">−</button>
+            <span class="qty-display">${item.quantity}</span>
+            <button class="qty-btn" onclick="changeQty(${idx}, 1)">+</button>
+          </div>
+          <div class="order-line-total">${formatCurrency(item.quantity * item.unit_price)}</div>
+          <button class="remove-btn" onclick="removeItem(${idx})" title="Remove">&times;</button>
+        </div>
+      `).join('');
+
+      const total = cart.reduce((sum, i) => sum + i.quantity * i.unit_price, 0);
+
+      summaryLines.innerHTML = cart.map(i => `
+        <div class="summary-row">
+          <span>${escHtml(i.product_name)} &times;${i.quantity}</span>
+          <span>${formatCurrency(i.quantity * i.unit_price)}</span>
+        </div>
+      `).join('');
+
+      totalEl.textContent = formatCurrency(total);
+    }
+
+    function changeQty(idx, delta) {
+      cart[idx].quantity = Math.max(1, cart[idx].quantity + delta);
+      saveCart();
+      renderCart();
+    }
+
+    function removeItem(idx) {
+      cart.splice(idx, 1);
+      saveCart();
+      renderCart();
+    }
+
+    // ── Add Item Modal ─────────────────────────────────────────────────────────
+    function openAddItemModal() { document.getElementById('modal-add-item').classList.add('open'); }
+    function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+    function addItemToCart() {
+      const errEl = document.getElementById('add-item-error');
+      errEl.style.display = 'none';
+      const productId = parseInt(document.getElementById('item-product-id').value, 10);
+      const productName = document.getElementById('item-product-name').value.trim();
+      const qty = parseInt(document.getElementById('item-qty').value, 10);
+      const price = parseFloat(document.getElementById('item-price').value);
+
+      if (!productId || !productName || !qty || !price) {
+        errEl.textContent = 'All fields are required.';
+        errEl.style.display = 'flex';
+        return;
+      }
+
+      const existing = cart.find(i => i.product_id === productId);
+      if (existing) { existing.quantity += qty; }
+      else { cart.push({ product_id: productId, product_name: productName, unit_price: price, quantity: qty }); }
+      saveCart();
+      renderCart();
+      closeModal('modal-add-item');
+      showToast(`Added ${productName} to order.`, 'success');
+    }
+
+    // ── Submit Order ──────────────────────────────────────────────────
+    async function submitOrder() {
+      const errEl = document.getElementById('submit-error');
+      const successEl = document.getElementById('submit-success');
+      errEl.style.display = 'none';
+      successEl.style.display = 'none';
+      const btn = document.getElementById('btn-submit-order');
+
+      if (!session.isLoggedIn()) {
+        errEl.textContent = 'You must be logged in to place an order. Please sign in first.';
+        errEl.style.display = 'flex';
+        return;
+      }
+
+      if (cart.length === 0) { errEl.textContent = 'Please add at least one item.'; errEl.style.display = 'flex'; return; }
+
+      btn.disabled = true;
+      btn.textContent = 'Submitting…';
+
+      try {
+        // POST /orders to Order Service (port 8003)
+        // Phase 2: JWT Bearer token is attached automatically by apiFetch().
+        // The Order Service validates the token, extracts user_id from JWT claims,
+        // and publishes an OrderPlacedEvent to SQS after persisting the order.
+        // The Inventory Service SQS consumer deducts stock asynchronously.
+        const order = await apiFetch(`${API.ORDER}/orders`, {
+          method: 'POST',
+          body: {
+            // user_id is still sent in the body for schema compatibility,
+            // but the Order Service overrides it with the JWT claim value.
+            user_id: session.load()?.user_id || 0,
+            items: cart,
+            shipping_address: document.getElementById('o-address').value.trim() || null,
+          },
+        });
+
+        showToast(`Order #${order.id} created! Inventory deduction queued via SQS.`, 'success');
+
+        successEl.innerHTML = `
+          ✅ Order <strong>#${order.id}</strong> placed for ${formatCurrency(order.total_amount)}.
+          Status: <strong>${order.status}</strong>.<br>
+          <small style="opacity:0.8">
+            📬 Phase 2: Stock deduction dispatched via SQS — processed asynchronously by the Inventory Service.
+          </small>
+          <br><a href="admin.html" style="color:inherit;text-decoration:underline;">View in Admin →</a>
+        `;
+        successEl.style.display = 'flex';
+
+        cart = [];
+        saveCart();
+        renderCart();
+      } catch (err) {
+        errEl.textContent = err.message;
+        errEl.style.display = 'flex';
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Submit Order';
+      }
+    }
+
+    function escHtml(str) {
+      const el = document.createElement('div');
+      el.textContent = str;
+      return el.innerHTML;
+    }
+
+    // ── Init ───────────────────────────────────────────────────────────────────
+    renderCart();
+  </script>
+</body>
+</html>

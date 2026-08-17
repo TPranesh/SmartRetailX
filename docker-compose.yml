@@ -1,0 +1,66 @@
+version: '3.8'
+
+services:
+  user-service:
+    build:
+      context: .
+      dockerfile: user_service/Dockerfile
+    container_name: srx-user-service
+    ports:
+      - "8001:8001"
+    environment:
+      - PYTHONPATH=/app
+      - JWT_SECRET_KEY=smartretailx_secret_key_2025
+    restart: always
+
+  product-service:
+    build:
+      context: .
+      dockerfile: product_service/Dockerfile
+    container_name: srx-product-service
+    ports:
+      - "8002:8002"
+    environment:
+      - PYTHONPATH=/app
+    restart: always
+
+  order-service:
+    build:
+      context: .
+      dockerfile: order_service/Dockerfile
+    container_name: srx-order-service
+    ports:
+      - "8003:8003"
+    environment:
+      - PYTHONPATH=/app
+      - INVENTORY_SERVICE_URL=http://inventory-service:8004
+      # SQS_QUEUE_URL: set if using real AWS SQS queue
+    depends_on:
+      - inventory-service
+    restart: always
+
+  inventory-service:
+    build:
+      context: .
+      dockerfile: inventory_service/Dockerfile
+    container_name: srx-inventory-service
+    ports:
+      - "8004:8004"
+    environment:
+      - PYTHONPATH=/app
+      # SQS_QUEUE_URL: set if using real AWS SQS queue
+    restart: always
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: srx-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - user-service
+      - product-service
+      - order-service
+      - inventory-service
+    restart: always

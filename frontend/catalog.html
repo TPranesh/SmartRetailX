@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Product Catalogue — SmartRetailX</title>
+  <meta name="description" content="Browse and search the full SmartRetailX B2B product catalogue." />
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    .filter-bar {
+      display: flex;
+      gap: var(--sp-3);
+      align-items: flex-end;
+      flex-wrap: wrap;
+      margin-bottom: var(--sp-6);
+    }
+
+    .filter-bar .form-group { margin-bottom: 0; flex: 1; min-width: 160px; }
+    .filter-bar .form-group.narrow { max-width: 180px; }
+
+    .product-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: var(--sp-5);
+    }
+
+    .product-card {
+      background: var(--color-white);
+      border: 1px solid var(--color-slate-200);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-sm);
+      display: flex;
+      flex-direction: column;
+      transition: box-shadow var(--trans-base);
+    }
+
+    .product-card:hover { box-shadow: var(--shadow-md); }
+
+    .product-card-header {
+      padding: var(--sp-5) var(--sp-5) var(--sp-3);
+      border-bottom: 1px solid var(--color-slate-100);
+    }
+
+    .product-category-tag {
+      font-size: var(--text-xs);
+      color: var(--color-slate-400);
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: var(--sp-2);
+    }
+
+    .product-name {
+      font-size: var(--text-base);
+      font-weight: 600;
+      color: var(--color-navy);
+      margin-bottom: var(--sp-1);
+      line-height: 1.3;
+    }
+
+    .product-sku {
+      font-size: var(--text-xs);
+      color: var(--color-slate-400);
+      font-family: var(--font-mono);
+    }
+
+    .product-card-body {
+      padding: var(--sp-4) var(--sp-5);
+      flex: 1;
+    }
+
+    .product-description {
+      font-size: var(--text-sm);
+      color: var(--color-slate-500);
+      line-height: 1.5;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .product-card-footer {
+      padding: var(--sp-4) var(--sp-5);
+      border-top: 1px solid var(--color-slate-100);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--sp-3);
+    }
+
+    .product-price {
+      font-size: var(--text-xl);
+      font-weight: 700;
+      color: var(--color-navy);
+      letter-spacing: -0.02em;
+    }
+
+    .product-stock {
+      font-size: var(--text-xs);
+      color: var(--color-slate-400);
+      margin-top: 2px;
+    }
+
+    .product-stock.low { color: var(--color-warning); }
+    .product-stock.out { color: var(--color-danger); }
+
+    #results-meta {
+      font-size: var(--text-sm);
+      color: var(--color-slate-500);
+      margin-bottom: var(--sp-4);
+    }
+  </style>
+</head>
+<body class="page-wrapper">
+
+  <div id="toast-container"></div>
+
+  <!-- Topbar -->
+  <header class="topbar">
+    <div class="container topbar-inner">
+      <a href="index.html" class="topbar-brand">
+        <div class="topbar-brand-icon">
+          <svg viewBox="0 0 20 20"><path d="M3 3h14v2H3V3zm0 4h14v2H3V7zm0 4h8v2H3v-2zm0 4h6v2H3v-2zm10-4h4v6h-4v-6z"/></svg>
+        </div>
+        <span class="topbar-brand-name">SmartRetailX</span>
+        <span class="topbar-brand-tag">Enterprise</span>
+      </a>
+      <nav class="topbar-nav">
+        <a href="index.html">Sign In</a>
+        <a href="catalog.html" class="active">Product Catalogue</a>
+        <a href="checkout.html">New Order</a>
+        <a href="admin.html">Admin</a>
+      </nav>
+      <div class="topbar-actions">
+        <span id="session-display" style="font-size:var(--text-xs);color:var(--color-slate-400);"></span>
+        <a href="checkout.html" class="btn btn-primary btn-sm">+ New Order</a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main -->
+  <main class="page-content">
+    <div class="container">
+
+      <!-- Page Header -->
+      <div class="page-header">
+        <div class="page-header-row">
+          <div>
+            <h1>Product Catalogue</h1>
+            <p>Browse available B2B products. Click <strong>Add to Order</strong> to proceed to checkout.</p>
+          </div>
+          <div>
+            <span class="service-dot checking" id="dot-product"></span>
+            <span style="font-size:var(--text-xs);color:var(--color-slate-400);">Product Service :8002</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Filter Bar -->
+      <div class="filter-bar">
+        <div class="form-group">
+          <label class="form-label" for="search-name">Search products</label>
+          <input class="form-control" type="text" id="search-name" placeholder="e.g. SSD, Server…" />
+        </div>
+        <div class="form-group narrow">
+          <label class="form-label" for="filter-category">Category</label>
+          <select class="form-control" id="filter-category">
+            <option value="">All categories</option>
+            <option>Storage</option>
+            <option>Networking</option>
+            <option>Compute</option>
+            <option>Security</option>
+            <option>Software</option>
+          </select>
+        </div>
+        <div>
+          <button class="btn btn-secondary" id="btn-search" onclick="loadProducts()">Search</button>
+        </div>
+        <div>
+          <button class="btn btn-primary" onclick="openAddModal()">+ Add Product</button>
+        </div>
+      </div>
+
+      <div id="results-meta"></div>
+
+      <!-- Product Grid -->
+      <div id="product-grid" class="product-grid">
+        <div class="empty-state" style="grid-column:1/-1;">
+          <div class="empty-state-icon">⏳</div>
+          <p>Loading products from the Product Catalogue Service…</p>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Add Product Modal -->
+  <div class="modal-overlay" id="modal-add-product">
+    <div class="modal">
+      <div class="modal-header">
+        <span class="modal-title">Add New Product</span>
+        <button class="modal-close" onclick="closeModal('modal-add-product')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="form-add-product" novalidate>
+          <div class="form-group">
+            <label class="form-label" for="p-name">Product Name <span class="required">*</span></label>
+            <input class="form-control" type="text" id="p-name" required />
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="p-price">Unit Price (£) <span class="required">*</span></label>
+              <input class="form-control" type="number" id="p-price" step="0.01" min="0.01" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="p-stock">Stock Level <span class="required">*</span></label>
+              <input class="form-control" type="number" id="p-stock" min="0" value="0" required />
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="p-category">Category</label>
+              <select class="form-control" id="p-category">
+                <option value="">Select…</option>
+                <option>Storage</option>
+                <option>Networking</option>
+                <option>Compute</option>
+                <option>Security</option>
+                <option>Software</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="p-sku">SKU</label>
+              <input class="form-control" type="text" id="p-sku" placeholder="SSD-2TB-001" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="p-desc">Description</label>
+            <textarea class="form-control" id="p-desc" rows="3"></textarea>
+          </div>
+          <div id="add-product-error" class="alert alert-danger" style="display:none;"></div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('modal-add-product')">Cancel</button>
+        <button class="btn btn-primary" id="btn-save-product" onclick="saveProduct()">Save Product</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Page Footer -->
+  <footer class="page-footer">
+    <div class="container page-footer-inner">
+      <span>SmartRetailX &copy; 2025 — Product Catalogue Service on <code class="text-mono" style="font-size:var(--text-xs);">localhost:8002</code></span>
+      <div class="footer-links">
+        <a href="http://localhost:8002/docs" target="_blank">Swagger UI</a>
+        <a href="admin.html">Admin Panel</a>
+      </div>
+    </div>
+  </footer>
+
+  <script src="api.js"></script>
+  <script>
+    // ── Session & RBAC nav ─────────────────────────────────────────────────────
+    applyRbacNav();
+    const user = session.load();
+    if (user) document.getElementById('session-display').textContent = `${user.email} (${user.role})`;
+
+    // ── Service health ─────────────────────────────────────────────────────
+    checkServiceHealth(API.PRODUCT, 'dot-product');
+
+    // ── Load Products ──────────────────────────────────────────────────────────
+    async function loadProducts() {
+      const grid = document.getElementById('product-grid');
+      const meta = document.getElementById('results-meta');
+      grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1;"><div class="empty-state-icon">⏳</div><p>Loading…</p></div>`;
+
+      try {
+        const category = document.getElementById('filter-category').value;
+        const searchTerm = document.getElementById('search-name').value.trim().toLowerCase();
+        const params = new URLSearchParams({ limit: 100 });
+        if (category) params.set('category', category);
+
+        // Fetch from Product Service (port 8002)
+        let products = await apiFetch(`${API.PRODUCT}/products?${params}`);
+
+        // Client-side search filter on name
+        if (searchTerm) {
+          products = products.filter(p =>
+            p.name.toLowerCase().includes(searchTerm) ||
+            (p.description || '').toLowerCase().includes(searchTerm)
+          );
+        }
+
+        meta.textContent = `${products.length} product${products.length !== 1 ? 's' : ''} found`;
+
+        if (products.length === 0) {
+          grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1;"><div class="empty-state-icon">📦</div><p>No products found. Add one using the button above.</p></div>`;
+          return;
+        }
+
+        // Fetch live stock levels from Inventory Service (Port 8004 — single source of truth)
+        await Promise.all(products.map(async p => {
+          p.stock_level = await getLiveInventoryStock(p.id);
+        }));
+
+        grid.innerHTML = products.map(p => `
+          <div class="product-card">
+            <div class="product-card-header">
+              <div class="product-category-tag">${p.category || 'Uncategorised'}</div>
+              <div class="product-name">${escHtml(p.name)}</div>
+              <div class="product-sku">${p.sku ? 'SKU: ' + p.sku : 'ID: #' + p.id}</div>
+            </div>
+            <div class="product-card-body">
+              <p class="product-description">${escHtml(p.description || 'No description provided.')}</p>
+            </div>
+            <div class="product-card-footer">
+              <div>
+                <div class="product-price">${formatCurrency(p.price)}</div>
+                <div class="product-stock ${p.stock_level === 0 ? 'out' : p.stock_level < 10 ? 'low' : ''}">
+                  ${p.stock_level === 0 ? '⚠ Out of stock' : p.stock_level < 10 ? `⚠ Low stock: ${p.stock_level}` : `${p.stock_level} in stock`}
+                </div>
+              </div>
+              <button class="btn btn-secondary btn-sm" onclick="addToOrder(${p.id}, '${escHtml(p.name)}', ${p.price})"
+                ${p.stock_level === 0 ? 'disabled title="Out of stock"' : ''}>
+                Add to Order
+              </button>
+            </div>
+          </div>
+        `).join('');
+      } catch (err) {
+        grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1;">
+          <div class="empty-state-icon">⚠️</div>
+          <p>Could not load products: ${escHtml(err.message)}<br>
+          Is the Product Service running on port 8002?</p>
+        </div>`;
+      }
+    }
+
+    // ── Add to Order (pass selection via sessionStorage) ───────────────────────
+    function addToOrder(id, name, price) {
+      const cart = JSON.parse(sessionStorage.getItem('srx_cart') || '[]');
+      const existing = cart.find(i => i.product_id === id);
+      if (existing) { existing.quantity += 1; }
+      else { cart.push({ product_id: id, product_name: name, unit_price: price, quantity: 1 }); }
+      sessionStorage.setItem('srx_cart', JSON.stringify(cart));
+      showToast(`"${name}" added to order.`, 'success');
+    }
+
+    // ── Add Product Modal ──────────────────────────────────────────────────────
+    function openAddModal() { document.getElementById('modal-add-product').classList.add('open'); }
+    function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+    async function saveProduct() {
+      const btn = document.getElementById('btn-save-product');
+      const errEl = document.getElementById('add-product-error');
+      errEl.style.display = 'none';
+      btn.disabled = true;
+      btn.textContent = 'Saving…';
+      try {
+        await apiFetch(`${API.PRODUCT}/products`, {
+          method: 'POST',
+          body: {
+            name: document.getElementById('p-name').value.trim(),
+            price: parseFloat(document.getElementById('p-price').value),
+            stock_level: parseInt(document.getElementById('p-stock').value, 10),
+            category: document.getElementById('p-category').value || null,
+            sku: document.getElementById('p-sku').value.trim() || null,
+            description: document.getElementById('p-desc').value.trim() || null,
+          },
+        });
+        closeModal('modal-add-product');
+        showToast('Product saved successfully.', 'success');
+        document.getElementById('form-add-product').reset();
+        loadProducts();
+      } catch (err) {
+        errEl.textContent = err.message;
+        errEl.style.display = 'flex';
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Save Product';
+      }
+    }
+
+    // ── Utility ────────────────────────────────────────────────────────────────
+    function escHtml(str) {
+      const el = document.createElement('div');
+      el.textContent = str;
+      return el.innerHTML;
+    }
+
+    // Search on Enter key
+    document.getElementById('search-name').addEventListener('keydown', e => {
+      if (e.key === 'Enter') loadProducts();
+    });
+
+    // ── Init ───────────────────────────────────────────────────────────────────
+    loadProducts();
+  </script>
+</body>
+</html>

@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sign In — SmartRetailX</title>
+  <meta name="description" content="Sign in to your SmartRetailX B2B commerce account or register as a new partner." />
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    body { background-color: var(--color-slate-100); display: flex; flex-direction: column; min-height: 100vh; }
+
+    .auth-wrapper {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: var(--sp-8) var(--sp-4);
+    }
+
+    .auth-box {
+      background: var(--color-white);
+      border: 1px solid var(--color-slate-200);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-lg);
+      width: 100%;
+      max-width: 440px;
+    }
+
+    .auth-brand {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--sp-3);
+      padding: var(--sp-8) var(--sp-6) var(--sp-6);
+      border-bottom: 1px solid var(--color-slate-100);
+    }
+
+    .auth-brand-icon {
+      width: 36px; height: 36px;
+      background: var(--color-accent);
+      border-radius: var(--radius-md);
+      display: flex; align-items: center; justify-content: center;
+    }
+
+    .auth-brand-icon svg { width: 20px; height: 20px; fill: white; }
+
+    .auth-brand-name {
+      font-size: var(--text-xl);
+      font-weight: 700;
+      color: var(--color-navy);
+      letter-spacing: -0.02em;
+    }
+
+    .auth-tabs {
+      display: flex;
+      border-bottom: 1px solid var(--color-slate-200);
+    }
+
+    .auth-tab {
+      flex: 1;
+      padding: var(--sp-4);
+      text-align: center;
+      font-size: var(--text-sm);
+      font-weight: 500;
+      color: var(--color-slate-500);
+      cursor: pointer;
+      background: none;
+      border: none;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+      font-family: var(--font-base);
+      transition: color var(--trans-fast), border-color var(--trans-fast);
+    }
+
+    .auth-tab.active {
+      color: var(--color-accent);
+      border-bottom-color: var(--color-accent);
+    }
+
+    .auth-tab:hover:not(.active) { color: var(--color-navy); }
+
+    .auth-form-panel { padding: var(--sp-6); display: none; }
+    .auth-form-panel.active { display: block; }
+
+    .auth-footer {
+      padding: var(--sp-4) var(--sp-6);
+      border-top: 1px solid var(--color-slate-100);
+      text-align: center;
+      font-size: var(--text-xs);
+      color: var(--color-slate-400);
+    }
+
+    .service-status-bar {
+      display: flex;
+      gap: var(--sp-5);
+      justify-content: center;
+      padding: var(--sp-3) var(--sp-4);
+      font-size: var(--text-xs);
+      color: var(--color-slate-500);
+      background: var(--color-white);
+      border: 1px solid var(--color-slate-200);
+      border-radius: var(--radius-md);
+      margin-top: var(--sp-6);
+      max-width: 440px;
+      width: 100%;
+    }
+
+    .service-status-item {
+      display: flex;
+      align-items: center;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Toast Container -->
+  <div id="toast-container"></div>
+
+  <!-- Topbar -->
+  <header class="topbar">
+    <div class="container topbar-inner">
+      <a href="index.html" class="topbar-brand">
+        <div class="topbar-brand-icon">
+          <svg viewBox="0 0 20 20"><path d="M3 3h14v2H3V3zm0 4h14v2H3V7zm0 4h8v2H3v-2zm0 4h6v2H3v-2zm10-4h4v6h-4v-6z"/></svg>
+        </div>
+        <span class="topbar-brand-name">SmartRetailX</span>
+        <span class="topbar-brand-tag">Enterprise</span>
+      </a>
+      <nav class="topbar-nav">
+        <a href="catalog.html">Product Catalogue</a>
+        <a href="checkout.html">New Order</a>
+        <a href="admin.html">Admin</a>
+      </nav>
+      <div class="topbar-actions">
+        <span id="session-display" style="font-size:var(--text-xs);color:var(--color-slate-400);"></span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Auth Box -->
+  <div class="auth-wrapper">
+    <div style="display:flex;flex-direction:column;align-items:center;width:100%;max-width:440px;">
+      <div class="auth-box">
+        <!-- Brand -->
+        <div class="auth-brand">
+          <div class="auth-brand-icon">
+            <svg viewBox="0 0 20 20"><path d="M3 3h14v2H3V3zm0 4h14v2H3V7zm0 4h8v2H3v-2zm0 4h6v2H3v-2zm10-4h4v6h-4v-6z"/></svg>
+          </div>
+          <div>
+            <div class="auth-brand-name">SmartRetailX</div>
+            <div style="font-size:var(--text-xs);color:var(--color-slate-400);">B2B Commerce Platform</div>
+          </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="auth-tabs" role="tablist">
+          <button class="auth-tab active" id="tab-login" role="tab" aria-selected="true" onclick="switchTab('login')">Sign In</button>
+          <button class="auth-tab" id="tab-register" role="tab" aria-selected="false" onclick="switchTab('register')">Register</button>
+        </div>
+
+        <!-- Login Panel -->
+        <div class="auth-form-panel active" id="panel-login" role="tabpanel">
+          <form id="form-login" novalidate>
+            <div class="form-group">
+              <label class="form-label" for="login-email">Email address <span class="required">*</span></label>
+              <input class="form-control" type="email" id="login-email" placeholder="you@company.com" autocomplete="email" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="login-password">Password <span class="required">*</span></label>
+              <input class="form-control" type="password" id="login-password" placeholder="••••••••" autocomplete="current-password" required />
+            </div>
+            <div id="login-error" class="alert alert-danger mb-4" style="display:none;"></div>
+            <button class="btn btn-primary btn-lg" type="submit" id="btn-login" style="width:100%;">Sign In</button>
+          </form>
+          <p class="text-muted text-sm mt-4" style="text-align:center;">
+            Don't have an account? <a href="#" onclick="switchTab('register');return false;">Register here</a>.
+          </p>
+        </div>
+
+        <!-- Register Panel -->
+        <div class="auth-form-panel" id="panel-register" role="tabpanel">
+          <form id="form-register" novalidate>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label" for="reg-name">Full Name <span class="required">*</span></label>
+                <input class="form-control" type="text" id="reg-name" placeholder="Jane Smith" required />
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="reg-company">Company</label>
+                <input class="form-control" type="text" id="reg-company" placeholder="Acme Corp" />
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="reg-email">Email address <span class="required">*</span></label>
+              <input class="form-control" type="email" id="reg-email" placeholder="jane@acme.com" autocomplete="email" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="reg-password">Password <span class="required">*</span></label>
+              <input class="form-control" type="password" id="reg-password" placeholder="Min. 6 characters" autocomplete="new-password" required minlength="6" />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="reg-role">Account Role</label>
+              <select class="form-control" id="reg-role">
+                <option value="customer">Customer</option>
+                <option value="admin">Admin</option>
+              </select>
+              <span class="form-hint">Phase 2: This role will be encoded in the JWT and enforced via RBAC middleware.</span>
+            </div>
+            <div id="register-error" class="alert alert-danger mb-4" style="display:none;"></div>
+            <button class="btn btn-primary btn-lg" type="submit" id="btn-register" style="width:100%;">Create Account</button>
+          </form>
+        </div>
+
+        <!-- Footer -->
+        <div class="auth-footer">
+          SmartRetailX &copy; 2025 &mdash; Phase 1 Local Build &mdash; All connections to localhost
+        </div>
+      </div>
+
+      <!-- Service health status -->
+      <div class="service-status-bar" id="service-status">
+        <span class="service-status-item"><span class="service-dot checking" id="dot-user"></span>User Svc</span>
+        <span class="service-status-item"><span class="service-dot checking" id="dot-product"></span>Product Svc</span>
+        <span class="service-status-item"><span class="service-dot checking" id="dot-order"></span>Order Svc</span>
+        <span class="service-status-item"><span class="service-dot checking" id="dot-inventory"></span>Inventory Svc</span>
+      </div>
+    </div>
+  </div>
+
+  <script src="api.js"></script>
+  <script>
+    // ── Tab switching ──────────────────────────────────────────────────────────
+    function switchTab(tab) {
+      document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.auth-form-panel').forEach(p => p.classList.remove('active'));
+      document.getElementById(`tab-${tab}`).classList.add('active');
+      document.getElementById(`panel-${tab}`).classList.add('active');
+    }
+
+    // ── Apply RBAC nav (hides Admin link for non-admin users) ─────────────────
+    applyRbacNav();
+
+    // ── Show session info if already logged in ─────────────────────────────────
+    const user = session.load();
+    if (user) {
+      document.getElementById('session-display').textContent =
+        `Signed in as ${user.email} (${user.role})`;
+    }
+
+    // ── Login Form ─────────────────────────────────────────────────────────────
+    document.getElementById('form-login').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById('btn-login');
+      const errEl = document.getElementById('login-error');
+      errEl.style.display = 'none';
+      btn.disabled = true;
+      btn.textContent = 'Signing in…';
+      try {
+        // POST /login → User Service (port 8001)
+        // Phase 2: returns {access_token, token_type, user_id, email, role}
+        const data = await apiFetch(`${API.USER}/login`, {
+          method: 'POST',
+          body: {
+            email: document.getElementById('login-email').value.trim(),
+            password: document.getElementById('login-password').value,
+          },
+        });
+        // Save JWT token + user metadata to localStorage
+        session.save(data);
+        showToast(`Welcome back, ${data.email}! Role: ${data.role}`, 'success');
+        // Redirect admins straight to admin panel, customers to catalogue
+        setTimeout(() => {
+          window.location.href = data.role === 'admin' ? 'admin.html' : 'catalog.html';
+        }, 900);
+      } catch (err) {
+        errEl.textContent = err.message;
+        errEl.style.display = 'flex';
+        btn.disabled = false;
+        btn.textContent = 'Sign In';
+      }
+    });
+
+    // ── Register Form ──────────────────────────────────────────────────────────
+    document.getElementById('form-register').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById('btn-register');
+      const errEl = document.getElementById('register-error');
+      errEl.style.display = 'none';
+      btn.disabled = true;
+      btn.textContent = 'Creating account…';
+      try {
+        await apiFetch(`${API.USER}/users`, {
+          method: 'POST',
+          body: {
+            full_name: document.getElementById('reg-name').value.trim(),
+            email: document.getElementById('reg-email').value.trim(),
+            password: document.getElementById('reg-password').value,
+            company: document.getElementById('reg-company').value.trim() || null,
+            role: document.getElementById('reg-role').value,
+          },
+        });
+        showToast('Account created. Please sign in.', 'success');
+        switchTab('login');
+      } catch (err) {
+        errEl.textContent = err.message;
+        errEl.style.display = 'flex';
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Create Account';
+      }
+    });
+
+    // ── Service health ─────────────────────────────────────────────────────────
+    checkServiceHealth(API.USER,      'dot-user');
+    checkServiceHealth(API.PRODUCT,   'dot-product');
+    checkServiceHealth(API.ORDER,     'dot-order');
+    checkServiceHealth(API.INVENTORY, 'dot-inventory');
+  </script>
+</body>
+</html>

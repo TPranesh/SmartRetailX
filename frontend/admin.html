@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Dashboard — SmartRetailX</title>
+  <meta name="description" content="Administrative dashboard for managing orders and inventory on SmartRetailX." />
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    .panel { display: none; }
+    .panel.active { display: block; }
+
+    .stock-bar-wrapper {
+      display: flex;
+      align-items: center;
+      gap: var(--sp-3);
+    }
+
+    .stock-bar-track {
+      flex: 1;
+      height: 6px;
+      background: var(--color-slate-200);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .stock-bar-fill {
+      height: 100%;
+      border-radius: 999px;
+      background: var(--color-accent);
+      transition: width 400ms ease;
+    }
+
+    .stock-bar-fill.low { background: var(--color-warning); }
+    .stock-bar-fill.out { background: var(--color-danger); }
+
+    .stock-qty { font-size: var(--text-xs); font-weight: 600; color: var(--color-slate-500); min-width: 40px; text-align: right; }
+
+    .order-detail-section { margin-bottom: var(--sp-5); }
+    .order-detail-label { font-size: var(--text-xs); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-slate-400); margin-bottom: var(--sp-2); }
+  </style>
+</head>
+<body class="page-wrapper">
+
+  <div id="toast-container"></div>
+
+  <!-- Topbar -->
+  <header class="topbar">
+    <div class="container topbar-inner">
+      <a href="index.html" class="topbar-brand">
+        <div class="topbar-brand-icon">
+          <svg viewBox="0 0 20 20"><path d="M3 3h14v2H3V3zm0 4h14v2H3V7zm0 4h8v2H3v-2zm0 4h6v2H3v-2zm10-4h4v6h-4v-6z"/></svg>
+        </div>
+        <span class="topbar-brand-name">SmartRetailX</span>
+        <span class="topbar-brand-tag">Enterprise</span>
+      </a>
+      <nav class="topbar-nav">
+        <a href="index.html">Sign In</a>
+        <a href="catalog.html">Product Catalogue</a>
+        <a href="checkout.html">New Order</a>
+        <a href="admin.html" class="active">Admin</a>
+      </nav>
+      <div class="topbar-actions">
+        <span id="session-display" style="font-size:var(--text-xs);color:var(--color-slate-400);"></span>
+        <button class="btn btn-secondary btn-sm" onclick="sessionLogout()">Sign Out</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="page-content">
+    <div class="container">
+
+      <!-- Page Header -->
+      <div class="page-header">
+        <h1>Administration Dashboard</h1>
+        <p>Manage orders, inventory, and users across all SmartRetailX microservices.</p>
+      </div>
+
+      <!-- Stats -->
+      <div class="stat-grid" id="stat-grid">
+        <div class="stat-card">
+          <div class="stat-card-label">Total Orders</div>
+          <div class="stat-card-value" id="stat-orders">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-label">Pending Orders</div>
+          <div class="stat-card-value" id="stat-pending">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-label">Total Users</div>
+          <div class="stat-card-value" id="stat-users">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-label">Inventory SKUs</div>
+          <div class="stat-card-value" id="stat-inv">—</div>
+        </div>
+      </div>
+
+      <!-- Admin Layout -->
+      <div class="admin-layout">
+
+        <!-- Sidebar -->
+        <nav class="sidebar">
+          <div class="sidebar-section-label">Operations</div>
+          <div class="sidebar-item active" id="nav-orders" onclick="showPanel('orders')">
+            📋 &nbsp; All Orders
+          </div>
+          <div class="sidebar-item" id="nav-inventory" onclick="showPanel('inventory')">
+            📦 &nbsp; Inventory
+          </div>
+          <div class="sidebar-section-label">Users</div>
+          <div class="sidebar-item" id="nav-users" onclick="showPanel('users')">
+            👤 &nbsp; User Accounts
+          </div>
+          <div class="sidebar-section-label">Services</div>
+          <div style="padding: var(--sp-3) var(--sp-4); font-size: var(--text-xs); color: var(--color-slate-400);">
+            <div style="margin-bottom:var(--sp-2);"><span class="service-dot checking" id="dot-user"></span>User :8001</div>
+            <div style="margin-bottom:var(--sp-2);"><span class="service-dot checking" id="dot-product"></span>Product :8002</div>
+            <div style="margin-bottom:var(--sp-2);"><span class="service-dot checking" id="dot-order"></span>Order :8003</div>
+            <div><span class="service-dot checking" id="dot-inventory"></span>Inventory :8004</div>
+          </div>
+          <div class="sidebar-section-label">API Docs</div>
+          <div style="padding: 0 var(--sp-4) var(--sp-4); display:flex; flex-direction:column; gap:var(--sp-2);">
+            <a href="http://localhost:8001/docs" target="_blank" class="btn btn-secondary btn-sm">User Swagger</a>
+            <a href="http://localhost:8002/docs" target="_blank" class="btn btn-secondary btn-sm">Product Swagger</a>
+            <a href="http://localhost:8003/docs" target="_blank" class="btn btn-secondary btn-sm">Order Swagger</a>
+            <a href="http://localhost:8004/docs" target="_blank" class="btn btn-secondary btn-sm">Inventory Swagger</a>
+          </div>
+        </nav>
+
+        <!-- Main Panels -->
+        <div>
+
+          <!-- ── Orders Panel ──────────────────────────────────────────────── -->
+          <div class="panel active" id="panel-orders">
+            <div class="card">
+              <div class="card-header">
+                <span class="card-title">All Orders</span>
+                <div style="display:flex;gap:var(--sp-3);align-items:center;">
+                  <select class="form-control" id="filter-order-status" style="width:160px;padding:6px 10px;" onchange="loadOrders()">
+                    <option value="">All statuses</option>
+                    <option>pending</option>
+                    <option>confirmed</option>
+                    <option>shipped</option>
+                    <option>delivered</option>
+                    <option>cancelled</option>
+                  </select>
+                  <button class="btn btn-secondary btn-sm" onclick="loadOrders()">⟳ Refresh</button>
+                </div>
+              </div>
+              <div class="table-wrapper">
+                <table class="table" id="orders-table">
+                  <thead>
+                    <tr>
+                      <th>Order ID</th>
+                      <th>User ID</th>
+                      <th>Status</th>
+                      <th>Total</th>
+                      <th>Items</th>
+                      <th>Created</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="orders-tbody">
+                    <tr class="loading-row"><td colspan="7">Loading orders…</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- ── Inventory Panel ───────────────────────────────────────────── -->
+          <div class="panel" id="panel-inventory">
+            <div class="card">
+              <div class="card-header">
+                <span class="card-title">Inventory Stock Levels</span>
+                <div style="display:flex;gap:var(--sp-3);">
+                  <button class="btn btn-secondary btn-sm" onclick="loadInventory()">⟳ Refresh</button>
+                  <button class="btn btn-primary btn-sm" onclick="openAddInventoryModal()">+ Add Item</button>
+                </div>
+              </div>
+              <div class="table-wrapper">
+                <table class="table">
+                  <thead>
+                    <tr>
+                      <th>Product ID</th>
+                      <th>Product Name</th>
+                      <th>Stock Level</th>
+                      <th>Reserved</th>
+                      <th>Location</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="inventory-tbody">
+                    <tr class="loading-row"><td colspan="6">Loading inventory…</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- ── Users Panel ───────────────────────────────────────────────── -->
+          <div class="panel" id="panel-users">
+            <div class="card">
+              <div class="card-header">
+                <span class="card-title">User Accounts</span>
+                <button class="btn btn-secondary btn-sm" onclick="loadUsers()">⟳ Refresh</button>
+              </div>
+              <div class="table-wrapper">
+                <table class="table">
+                  <thead>
+                    <tr>
+                      <th>ID</th>
+                      <th>Full Name</th>
+                      <th>Email</th>
+                      <th>Role</th>
+                      <th>Company</th>
+                      <th>Registered</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="users-tbody">
+                    <tr class="loading-row"><td colspan="7">Loading users…</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Update Order Status Modal -->
+  <div class="modal-overlay" id="modal-order-status">
+    <div class="modal">
+      <div class="modal-header">
+        <span class="modal-title">Update Order Status</span>
+        <button class="modal-close" onclick="closeModal('modal-order-status')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="text-muted text-sm mb-4">Order <strong id="status-order-id"></strong></p>
+        <div class="form-group">
+          <label class="form-label" for="new-status">New Status</label>
+          <select class="form-control" id="new-status">
+            <option value="pending">Pending</option>
+            <option value="confirmed">Confirmed</option>
+            <option value="shipped">Shipped</option>
+            <option value="delivered">Delivered</option>
+            <option value="cancelled">Cancelled</option>
+          </select>
+          <span class="form-hint">Phase 2: Changing to "confirmed" will publish an SNS event to trigger inventory deduction.</span>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('modal-order-status')">Cancel</button>
+        <button class="btn btn-primary" onclick="submitStatusUpdate()">Update Status</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Restock Modal -->
+  <div class="modal-overlay" id="modal-restock">
+    <div class="modal">
+      <div class="modal-header">
+        <span class="modal-title">Restock Product</span>
+        <button class="modal-close" onclick="closeModal('modal-restock')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="text-muted text-sm mb-4">Product <strong id="restock-product-id"></strong></p>
+        <div class="form-group">
+          <label class="form-label" for="restock-qty">Quantity to Add <span class="required">*</span></label>
+          <input class="form-control" type="number" id="restock-qty" min="1" value="10" />
+        </div>
+        <div id="restock-error" class="alert alert-danger" style="display:none;"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('modal-restock')">Cancel</button>
+        <button class="btn btn-primary" onclick="submitRestock()">Confirm Restock</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Inventory Modal -->
+  <div class="modal-overlay" id="modal-add-inventory">
+    <div class="modal">
+      <div class="modal-header">
+        <span class="modal-title">Add Inventory Record</span>
+        <button class="modal-close" onclick="closeModal('modal-add-inventory')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label" for="inv-product-id">Product ID <span class="required">*</span></label>
+          <input class="form-control" type="number" id="inv-product-id" min="1" />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="inv-product-name">Product Name <span class="required">*</span></label>
+          <input class="form-control" type="text" id="inv-product-name" />
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="inv-qty">Initial Quantity</label>
+            <input class="form-control" type="number" id="inv-qty" min="0" value="0" />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="inv-location">Warehouse Location</label>
+            <input class="form-control" type="text" id="inv-location" placeholder="Warehouse A" />
+          </div>
+        </div>
+        <div id="add-inv-error" class="alert alert-danger" style="display:none;"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('modal-add-inventory')">Cancel</button>
+        <button class="btn btn-primary" onclick="submitAddInventory()">Add Record</button>
+      </div>
+    </div>
+  </div>
+
+  <footer class="page-footer">
+    <div class="container page-footer-inner">
+      <span>SmartRetailX Admin &mdash; Phase 1 Local Build</span>
+      <div class="footer-links">
+        <a href="catalog.html">Catalogue</a>
+        <a href="checkout.html">New Order</a>
+      </div>
+    </div>
+  </footer>
+
+  <script src="api.js"></script>
+  <script>
+    // ── Session & RBAC guard ───────────────────────────────────────────────────
+    applyRbacNav();
+    const adminUser = session.load();
+    if (adminUser) {
+      document.getElementById('session-display').textContent =
+        `${adminUser.email} • ${adminUser.role.toUpperCase()}`;
+    }
+    // Redirect non-admins away from this page
+    if (!session.isLoggedIn() || !session.isAdmin()) {
+      showToast('Admin access only. Redirecting to catalogue.', 'error');
+      setTimeout(() => { window.location.href = 'catalog.html'; }, 1500);
+    }
+
+    function sessionLogout() {
+      session.clear();
+      window.location.href = 'index.html';
+    }
+
+    // ── Service health ─────────────────────────────────────────────────────────
+    checkServiceHealth(API.USER,      'dot-user');
+    checkServiceHealth(API.PRODUCT,   'dot-product');
+    checkServiceHealth(API.ORDER,     'dot-order');
+    checkServiceHealth(API.INVENTORY, 'dot-inventory');
+
+    // ── Panel navigation ───────────────────────────────────────────────────────
+    function showPanel(name) {
+      document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.sidebar-item').forEach(i => i.classList.remove('active'));
+      document.getElementById(`panel-${name}`).classList.add('active');
+      document.getElementById(`nav-${name}`).classList.add('active');
+      if (name === 'orders')    loadOrders();
+      if (name === 'inventory') loadInventory();
+      if (name === 'users')     loadUsers();
+    }
+
+    // ── Modal ──────────────────────────────────────────────────────────────────
+    function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+    function escHtml(str) {
+      const el = document.createElement('div');
+      el.textContent = str;
+      return el.innerHTML;
+    }
+
+    // ── Load Orders ────────────────────────────────────────────────────────────
+    let currentOrderId = null;
+
+    async function loadOrders() {
+      const tbody = document.getElementById('orders-tbody');
+      tbody.innerHTML = '<tr class="loading-row"><td colspan="7">Loading…</td></tr>';
+      try {
+        const status = document.getElementById('filter-order-status').value;
+        const params = new URLSearchParams({ limit: 100 });
+        if (status) params.set('status', status);
+
+        // Fetch from Order Service (port 8003)
+        const orders = await apiFetch(`${API.ORDER}/orders?${params}`);
+        document.getElementById('stat-orders').textContent = orders.length;
+        document.getElementById('stat-pending').textContent = orders.filter(o => o.status === 'pending').length;
+
+        if (orders.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="7" style="padding:var(--sp-8);text-align:center;color:var(--color-slate-400);">No orders found.</td></tr>`;
+          return;
+        }
+
+        tbody.innerHTML = orders.map(o => `
+          <tr>
+            <td><code class="text-mono" style="font-size:var(--text-xs);">#${o.id}</code></td>
+            <td>${o.user_id}</td>
+            <td>${statusBadge(o.status)}</td>
+            <td>${formatCurrency(o.total_amount)}</td>
+            <td>${o.items.length} item${o.items.length !== 1 ? 's' : ''}</td>
+            <td>${formatDate(o.created_at)}</td>
+            <td>
+              <div class="table-actions">
+                <button class="btn btn-secondary btn-sm" onclick="openStatusModal(${o.id}, '${o.status}')">Update Status</button>
+              </div>
+            </td>
+          </tr>
+        `).join('');
+      } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="7" style="padding:var(--sp-6);color:var(--color-danger);text-align:center;">${escHtml(err.message)}</td></tr>`;
+      }
+    }
+
+    function openStatusModal(orderId, currentStatus) {
+      currentOrderId = orderId;
+      document.getElementById('status-order-id').textContent = `#${orderId}`;
+      document.getElementById('new-status').value = currentStatus;
+      document.getElementById('modal-order-status').classList.add('open');
+    }
+
+    async function submitStatusUpdate() {
+      try {
+        // PATCH /orders/{id}/status on Order Service (port 8003)
+        await apiFetch(`${API.ORDER}/orders/${currentOrderId}/status`, {
+          method: 'PATCH',
+          body: { status: document.getElementById('new-status').value },
+        });
+        closeModal('modal-order-status');
+        showToast(`Order #${currentOrderId} updated.`, 'success');
+        loadOrders();
+      } catch (err) {
+        showToast('Error: ' + err.message, 'error');
+      }
+    }
+
+    // ── Load Inventory ─────────────────────────────────────────────────────────
+    let restockProductId = null;
+
+    async function loadInventory() {
+      const tbody = document.getElementById('inventory-tbody');
+      tbody.innerHTML = '<tr class="loading-row"><td colspan="6">Loading…</td></tr>';
+      try {
+        // Fetch from Inventory Service (port 8004)
+        const items = await apiFetch(`${API.INVENTORY}/inventory`);
+        document.getElementById('stat-inv').textContent = items.length;
+
+        if (items.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="6" style="padding:var(--sp-8);text-align:center;color:var(--color-slate-400);">No inventory records found.</td></tr>`;
+          return;
+        }
+
+        const maxQty = Math.max(...items.map(i => i.stock_quantity), 1);
+
+        tbody.innerHTML = items.map(item => {
+          const pct = Math.min(100, Math.round((item.stock_quantity / maxQty) * 100));
+          const barClass = item.stock_quantity === 0 ? 'out' : item.stock_quantity < 10 ? 'low' : '';
+          const stockBadge = item.stock_quantity === 0
+            ? `<span class="badge badge-danger">Out of stock</span>`
+            : item.stock_quantity < 10
+            ? `<span class="badge badge-warning">Low</span>`
+            : `<span class="badge badge-success">OK</span>`;
+          return `
+            <tr>
+              <td>${item.product_id}</td>
+              <td>${escHtml(item.product_name)}</td>
+              <td>
+                <div class="stock-bar-wrapper">
+                  <div class="stock-bar-track">
+                    <div class="stock-bar-fill ${barClass}" style="width:${pct}%"></div>
+                  </div>
+                  <span class="stock-qty">${item.stock_quantity}</span>
+                  ${stockBadge}
+                </div>
+              </td>
+              <td>${item.reserved_quantity}</td>
+              <td>${escHtml(item.warehouse_location || '—')}</td>
+              <td>
+                <div class="table-actions">
+                  <button class="btn btn-secondary btn-sm" onclick="openRestockModal(${item.product_id})">Restock</button>
+                </div>
+              </td>
+            </tr>`;
+        }).join('');
+      } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="6" style="padding:var(--sp-6);color:var(--color-danger);text-align:center;">${escHtml(err.message)}</td></tr>`;
+      }
+    }
+
+    function openRestockModal(productId) {
+      restockProductId = productId;
+      document.getElementById('restock-product-id').textContent = `#${productId}`;
+      document.getElementById('restock-qty').value = 10;
+      document.getElementById('restock-error').style.display = 'none';
+      document.getElementById('modal-restock').classList.add('open');
+    }
+
+    async function submitRestock() {
+      const errEl = document.getElementById('restock-error');
+      errEl.style.display = 'none';
+      const qty = parseInt(document.getElementById('restock-qty').value, 10);
+      if (!qty || qty < 1) { errEl.textContent = 'Enter a positive quantity.'; errEl.style.display = 'flex'; return; }
+      try {
+        // PATCH /inventory/{product_id}/restock on Inventory Service (port 8004)
+        await apiFetch(`${API.INVENTORY}/inventory/${restockProductId}/restock?quantity=${qty}`, { method: 'PATCH' });
+        closeModal('modal-restock');
+        showToast(`Product #${restockProductId} restocked by ${qty} units.`, 'success');
+        loadInventory();
+      } catch (err) {
+        errEl.textContent = err.message;
+        errEl.style.display = 'flex';
+      }
+    }
+
+    function openAddInventoryModal() {
+      document.getElementById('add-inv-error').style.display = 'none';
+      document.getElementById('modal-add-inventory').classList.add('open');
+    }
+
+    async function submitAddInventory() {
+      const errEl = document.getElementById('add-inv-error');
+      errEl.style.display = 'none';
+      try {
+        await apiFetch(`${API.INVENTORY}/inventory`, {
+          method: 'POST',
+          body: {
+            product_id: parseInt(document.getElementById('inv-product-id').value, 10),
+            product_name: document.getElementById('inv-product-name').value.trim(),
+            stock_quantity: parseInt(document.getElementById('inv-qty').value, 10) || 0,
+            warehouse_location: document.getElementById('inv-location').value.trim() || null,
+          },
+        });
+        closeModal('modal-add-inventory');
+        showToast('Inventory record added.', 'success');
+        loadInventory();
+      } catch (err) {
+        errEl.textContent = err.message;
+        errEl.style.display = 'flex';
+      }
+    }
+
+    // ── Load Users ─────────────────────────────────────────────────────────────
+    async function loadUsers() {
+      const tbody = document.getElementById('users-tbody');
+      tbody.innerHTML = '<tr class="loading-row"><td colspan="7">Loading…</td></tr>';
+      try {
+        // Fetch from User Service (port 8001)
+        const users = await apiFetch(`${API.USER}/users`);
+        document.getElementById('stat-users').textContent = users.length;
+
+        if (users.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="7" style="padding:var(--sp-8);text-align:center;color:var(--color-slate-400);">No users found.</td></tr>`;
+          return;
+        }
+
+        tbody.innerHTML = users.map(u => `
+          <tr>
+            <td>${u.id}</td>
+            <td>${escHtml(u.full_name)}</td>
+            <td>${escHtml(u.email)}</td>
+            <td>${statusBadge(u.role)}</td>
+            <td>${escHtml(u.company || '—')}</td>
+            <td>${formatDate(u.created_at)}</td>
+            <td>
+              <div class="table-actions">
+                <button class="btn btn-danger btn-sm" onclick="deleteUser(${u.id})">Delete</button>
+              </div>
+            </td>
+          </tr>
+        `).join('');
+      } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="7" style="padding:var(--sp-6);color:var(--color-danger);text-align:center;">${escHtml(err.message)}</td></tr>`;
+      }
+    }
+
+    async function deleteUser(userId) {
+      if (!confirm(`Permanently delete user #${userId}?`)) return;
+      try {
+        await apiFetch(`${API.USER}/users/${userId}`, { method: 'DELETE' });
+        showToast(`User #${userId} deleted.`, 'success');
+        loadUsers();
+      } catch (err) {
+        showToast('Delete failed: ' + err.message, 'error');
+      }
+    }
+
+    // ── Load Stats ─────────────────────────────────────────────────────────────
+    async function loadStats() {
+      try {
+        const [orders, users, inventory] = await Promise.allSettled([
+          apiFetch(`${API.ORDER}/orders?limit=200`),
+          apiFetch(`${API.USER}/users?limit=200`),
+          apiFetch(`${API.INVENTORY}/inventory?limit=200`),
+        ]);
+        if (orders.status === 'fulfilled') {
+          document.getElementById('stat-orders').textContent = orders.value.length;
+          document.getElementById('stat-pending').textContent = orders.value.filter(o => o.status === 'pending').length;
+        }
+        if (users.status === 'fulfilled') {
+          document.getElementById('stat-users').textContent = users.value.length;
+        }
+        if (inventory.status === 'fulfilled') {
+          document.getElementById('stat-inv').textContent = inventory.value.length;
+        }
+      } catch (_) { /* stats are optional */ }
+    }
+
+    // ── Init ───────────────────────────────────────────────────────────────────
+    loadStats();
+    loadOrders();
+  </script>
+</body>
+</html>
