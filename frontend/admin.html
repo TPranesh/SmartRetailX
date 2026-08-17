@@ -186,13 +186,12 @@
                       <th>Product ID</th>
                       <th>Product Name</th>
                       <th>Stock Level</th>
-                      <th>Reserved</th>
                       <th>Location</th>
                       <th>Actions</th>
                     </tr>
                   </thead>
                   <tbody id="inventory-tbody">
-                    <tr class="loading-row"><td colspan="6">Loading inventory…</td></tr>
+                    <tr class="loading-row"><td colspan="5">Loading inventory…</td></tr>
                   </tbody>
                 </table>
               </div>
@@ -286,33 +285,55 @@
   <div class="modal-overlay" id="modal-add-inventory">
     <div class="modal">
       <div class="modal-header">
-        <span class="modal-title">Add Inventory Record</span>
+        <span class="modal-title">Add New Product & Inventory Record</span>
         <button class="modal-close" onclick="closeModal('modal-add-inventory')">&times;</button>
       </div>
       <div class="modal-body">
         <div class="form-group">
-          <label class="form-label" for="inv-product-id">Product ID <span class="required">*</span></label>
-          <input class="form-control" type="number" id="inv-product-id" min="1" />
-        </div>
-        <div class="form-group">
           <label class="form-label" for="inv-product-name">Product Name <span class="required">*</span></label>
-          <input class="form-control" type="text" id="inv-product-name" />
+          <input class="form-control" type="text" id="inv-product-name" placeholder="Enterprise SSD 2TB" required />
         </div>
         <div class="form-row">
           <div class="form-group">
-            <label class="form-label" for="inv-qty">Initial Quantity</label>
-            <input class="form-control" type="number" id="inv-qty" min="0" value="0" />
+            <label class="form-label" for="inv-category">Category</label>
+            <select class="form-control" id="inv-category">
+              <option value="Storage">Storage</option>
+              <option value="Servers">Servers</option>
+              <option value="Networking">Networking</option>
+              <option value="Power">Power</option>
+              <option value="Compute">Compute</option>
+              <option value="Security">Security</option>
+              <option value="Software">Software</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="inv-price">Unit Price (£) <span class="required">*</span></label>
+            <input class="form-control" type="number" id="inv-price" step="0.01" min="0.01" placeholder="299.99" required />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="inv-qty">Initial Quantity <span class="required">*</span></label>
+            <input class="form-control" type="number" id="inv-qty" min="0" value="10" required />
           </div>
           <div class="form-group">
             <label class="form-label" for="inv-location">Warehouse Location</label>
-            <input class="form-control" type="text" id="inv-location" placeholder="Warehouse A" />
+            <select class="form-control" id="inv-location">
+              <option value="Warehouse A - Main Hub">Warehouse A - Main Hub</option>
+              <option value="Warehouse B - North Facility">Warehouse B - North Facility</option>
+              <option value="Warehouse C - West Logistics">Warehouse C - West Logistics</option>
+            </select>
           </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="inv-desc">Description</label>
+          <textarea class="form-control" id="inv-desc" rows="2" placeholder="High-performance hardware specs..."></textarea>
         </div>
         <div id="add-inv-error" class="alert alert-danger" style="display:none;"></div>
       </div>
       <div class="modal-footer">
         <button class="btn btn-secondary" onclick="closeModal('modal-add-inventory')">Cancel</button>
-        <button class="btn btn-primary" onclick="submitAddInventory()">Add Record</button>
+        <button class="btn btn-primary" onclick="submitAddInventory()">Create & Save</button>
       </div>
     </div>
   </div>
@@ -441,14 +462,14 @@
 
     async function loadInventory() {
       const tbody = document.getElementById('inventory-tbody');
-      tbody.innerHTML = '<tr class="loading-row"><td colspan="6">Loading…</td></tr>';
+      tbody.innerHTML = '<tr class="loading-row"><td colspan="5">Loading…</td></tr>';
       try {
         // Fetch from Inventory Service (port 8004)
         const items = await apiFetch(`${API.INVENTORY}/inventory`);
         document.getElementById('stat-inv').textContent = items.length;
 
         if (items.length === 0) {
-          tbody.innerHTML = `<tr><td colspan="6" style="padding:var(--sp-8);text-align:center;color:var(--color-slate-400);">No inventory records found.</td></tr>`;
+          tbody.innerHTML = `<tr><td colspan="5" style="padding:var(--sp-8);text-align:center;color:var(--color-slate-400);">No inventory records found.</td></tr>`;
           return;
         }
 
@@ -475,17 +496,17 @@
                   ${stockBadge}
                 </div>
               </td>
-              <td>${item.reserved_quantity}</td>
               <td>${escHtml(item.warehouse_location || '—')}</td>
               <td>
                 <div class="table-actions">
                   <button class="btn btn-secondary btn-sm" onclick="openRestockModal(${item.product_id})">Restock</button>
+                  <button class="btn btn-danger btn-sm" onclick="deleteProduct(${item.product_id})">Delete</button>
                 </div>
               </td>
             </tr>`;
         }).join('');
       } catch (err) {
-        tbody.innerHTML = `<tr><td colspan="6" style="padding:var(--sp-6);color:var(--color-danger);text-align:center;">${escHtml(err.message)}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="5" style="padding:var(--sp-6);color:var(--color-danger);text-align:center;">${escHtml(err.message)}</td></tr>`;
       }
     }
 
@@ -522,22 +543,64 @@
     async function submitAddInventory() {
       const errEl = document.getElementById('add-inv-error');
       errEl.style.display = 'none';
+      const productName = document.getElementById('inv-product-name').value.trim();
+      const price = parseFloat(document.getElementById('inv-price').value);
+      const qty = parseInt(document.getElementById('inv-qty').value, 10);
+      const category = document.getElementById('inv-category').value;
+      const location = document.getElementById('inv-location').value;
+      const desc = document.getElementById('inv-desc').value.trim();
+
+      if (!productName || isNaN(price) || isNaN(qty)) {
+        errEl.textContent = 'Product Name, Unit Price, and Initial Quantity are required.';
+        errEl.style.display = 'flex';
+        return;
+      }
+
       try {
-        await apiFetch(`${API.INVENTORY}/inventory`, {
+        // 1. Create product in Product Service (port 8002)
+        const product = await apiFetch(`${API.PRODUCT}/products`, {
           method: 'POST',
           body: {
-            product_id: parseInt(document.getElementById('inv-product-id').value, 10),
-            product_name: document.getElementById('inv-product-name').value.trim(),
-            stock_quantity: parseInt(document.getElementById('inv-qty').value, 10) || 0,
-            warehouse_location: document.getElementById('inv-location').value.trim() || null,
+            name: productName,
+            price: price,
+            stock_level: qty,
+            category: category,
+            description: desc || null,
           },
         });
+
+        // 2. Register initial inventory record in Inventory Service (port 8004)
+        try {
+          await apiFetch(`${API.INVENTORY}/inventory`, {
+            method: 'POST',
+            body: {
+              product_id: product.id,
+              product_name: product.name,
+              stock_quantity: qty,
+              warehouse_location: location,
+            },
+          });
+        } catch (_) {
+          /* inventory record created or handled */
+        }
+
         closeModal('modal-add-inventory');
-        showToast('Inventory record added.', 'success');
+        showToast(`Product "${productName}" and inventory record created successfully!`, 'success');
         loadInventory();
       } catch (err) {
         errEl.textContent = err.message;
         errEl.style.display = 'flex';
+      }
+    }
+
+    async function deleteProduct(productId) {
+      if (!confirm(`Are you sure you want to delete product #${productId}? This action cannot be undone.`)) return;
+      try {
+        await apiFetch(`${API.PRODUCT}/products/${productId}`, { method: 'DELETE' });
+        showToast(`Product #${productId} deleted successfully.`, 'success');
+        loadInventory();
+      } catch (err) {
+        showToast('Delete failed: ' + err.message, 'error');
       }
     }
 

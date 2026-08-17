@@ -73,7 +73,7 @@ const session = {
 
   /** Returns the raw JWT string, or null if not logged in. */
   getToken() {
-    return localStorage.getItem('srx_token');
+    return localStorage.getItem('token') || localStorage.getItem('srx_token');
   },
 
   /** Returns stored user metadata object {user_id, email, role}. */
@@ -180,7 +180,7 @@ async function apiFetch(url, options = {}) {
  * Ensures Authorization header is explicitly attached with Bearer token.
  */
 async function placeOrder(orderData) {
-  const token = session.getToken();
+  const token = session.getToken() || localStorage.getItem('token') || localStorage.getItem('srx_token');
   if (!token) {
     throw new Error('You must be signed in to place an order.');
   }

@@ -177,7 +177,7 @@
           <button class="btn btn-secondary" id="btn-search" onclick="loadProducts()">Search</button>
         </div>
         <div>
-          <button class="btn btn-primary" onclick="openAddModal()">+ Add Product</button>
+          <button class="btn btn-primary" id="btn-add-product" onclick="openAddModal()">+ Add Product</button>
         </div>
       </div>
 
@@ -263,6 +263,10 @@
   <script>
     // ── Session & RBAC nav ─────────────────────────────────────────────────────
     applyRbacNav();
+    if (!session.isAdmin()) {
+      const addProductBtn = document.getElementById('btn-add-product');
+      if (addProductBtn) addProductBtn.style.display = 'none';
+    }
     const user = session.load();
     if (user) document.getElementById('session-display').textContent = `${user.email} (${user.role})`;
 
@@ -348,7 +352,13 @@
     }
 
     // ── Add Product Modal ──────────────────────────────────────────────────────
-    function openAddModal() { document.getElementById('modal-add-product').classList.add('open'); }
+    function openAddModal() {
+      if (!session.isAdmin()) {
+        showToast('Admin privileges required to add products.', 'error');
+        return;
+      }
+      document.getElementById('modal-add-product').classList.add('open');
+    }
     function closeModal(id) { document.getElementById(id).classList.remove('open'); }
 
     async function saveProduct() {

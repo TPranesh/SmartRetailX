@@ -198,14 +198,6 @@
               <label class="form-label" for="reg-password">Password <span class="required">*</span></label>
               <input class="form-control" type="password" id="reg-password" placeholder="Min. 6 characters" autocomplete="new-password" required minlength="6" />
             </div>
-            <div class="form-group">
-              <label class="form-label" for="reg-role">Account Role</label>
-              <select class="form-control" id="reg-role">
-                <option value="customer">Customer</option>
-                <option value="admin">Admin</option>
-              </select>
-              <span class="form-hint">Phase 2: This role will be encoded in the JWT and enforced via RBAC middleware.</span>
-            </div>
             <div id="register-error" class="alert alert-danger mb-4" style="display:none;"></div>
             <button class="btn btn-primary btn-lg" type="submit" id="btn-register" style="width:100%;">Create Account</button>
           </form>
@@ -296,7 +288,7 @@
             email: document.getElementById('reg-email').value.trim(),
             password: document.getElementById('reg-password').value,
             company: document.getElementById('reg-company').value.trim() || null,
-            role: document.getElementById('reg-role').value,
+            role: 'customer',
           },
         });
         showToast('Account created. Please sign in.', 'success');

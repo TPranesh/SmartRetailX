@@ -19,7 +19,7 @@ from jose import JWTError, jwt
 from pydantic import BaseModel
 
 # ── Configuration (must match user_service/security.py) ───────────────────────
-SECRET_KEY: str = os.environ.get("JWT_SECRET_KEY", "CHANGE_ME_super_secret_key_for_smartretailx_2025")
+SECRET_KEY: str = os.environ.get("JWT_SECRET_KEY", "smartretailx_secret_key_2025")
 ALGORITHM: str = os.environ.get("JWT_ALGORITHM", "HS256")
 
 # This tells FastAPI where to get a token; used for Swagger UI "Authorize" button

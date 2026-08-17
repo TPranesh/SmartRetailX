@@ -18,7 +18,7 @@ import bcrypt
 from jose import JWTError, jwt
 
 # ── Configuration (read from environment, with safe defaults) ─────────────────
-SECRET_KEY: str = os.environ.get("JWT_SECRET_KEY", "CHANGE_ME_super_secret_key_for_smartretailx_2025")
+SECRET_KEY: str = os.environ.get("JWT_SECRET_KEY", "smartretailx_secret_key_2025")
 ALGORITHM: str = os.environ.get("JWT_ALGORITHM", "HS256")
 ACCESS_TOKEN_EXPIRE_MINUTES: int = int(os.environ.get("JWT_EXPIRE_MINS", "60"))
 

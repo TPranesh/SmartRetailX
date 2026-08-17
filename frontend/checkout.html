@@ -147,6 +147,7 @@
         <!-- Left: Order Form + Line Items -->
         <div>
           <!-- Order Details -->
+          <!-- Order Details -->
           <div class="card mb-6">
             <div class="card-header">
               <span class="card-title">Order Details</span>
@@ -154,9 +155,9 @@
             <div class="card-body">
               <div class="form-row">
                 <div class="form-group">
-                  <label class="form-label" for="o-user-id">User ID <span class="required">*</span></label>
-                  <input class="form-control" type="number" id="o-user-id" placeholder="e.g. 1" min="1" required />
-                  <span class="form-hint">Phase 2: Auto-populated from the decoded JWT claim.</span>
+                  <label class="form-label" for="o-user-id">User ID (Authenticated)</label>
+                  <input class="form-control" type="text" id="o-user-id" readonly disabled style="background-color: var(--color-slate-100); color: var(--color-slate-500); cursor: not-allowed;" />
+                  <span class="form-hint">Auto-populated from your active user session.</span>
                 </div>
                 <div class="form-group">
                   <label class="form-label" for="o-address">Shipping Address</label>
@@ -166,16 +167,15 @@
             </div>
           </div>
 
-          <!-- Add Items Manually -->
+          <!-- Line Items from Catalogue -->
           <div class="card mb-6">
             <div class="card-header">
               <span class="card-title">Order Line Items</span>
-              <button class="btn btn-secondary btn-sm" onclick="openAddItemModal()">+ Add Item</button>
             </div>
             <div class="card-body" id="cart-body">
               <div class="empty-cart" id="empty-cart-msg">
                 <div class="empty-cart-icon">🛒</div>
-                <p>Your order is empty.<br>Add items from the <a href="catalog.html">Product Catalogue</a> or use the button above.</p>
+                <p>Your order is empty.<br>Browse items in the <a href="catalog.html" style="font-weight:600;color:var(--color-accent);">Product Catalogue</a> to add them to your order.</p>
               </div>
               <div id="cart-items"></div>
             </div>
@@ -185,12 +185,11 @@
         <!-- Right: Order Summary & Submit -->
         <div>
           <div class="card" style="position:sticky;top:72px;">
-            <div class="card-header"><span class="card-title">Order Summary</span></div>
+            <div class="card-header"><span class="card-title">Order Receipt Summary</span></div>
             <div class="card-body">
               <div id="summary-lines"></div>
-              <div class="divider" style="margin: var(--sp-3) 0;"></div>
-              <div class="summary-row summary-total">
-                <span>Total</span>
+              <div style="display:flex; justify-content:space-between; align-items:center; padding-top:var(--sp-4); margin-top:var(--sp-4); border-top:2px solid var(--color-navy); font-weight:700; font-size:var(--text-lg); color:var(--color-navy);">
+                <span>Total Amount</span>
                 <span id="summary-total">£0.00</span>
               </div>
             </div>
@@ -201,7 +200,7 @@
                 Submit Order
               </button>
               <p class="text-muted text-xs mt-4" style="text-align:center;">
-                Submitting calls POST /orders on the Order Service and POST /events/order-placed on the Inventory Service.
+                Submitting places your order with the Order Processing Service.
               </p>
             </div>
           </div>
@@ -209,41 +208,6 @@
       </div>
     </div>
   </main>
-
-  <!-- Add Item Modal -->
-  <div class="modal-overlay" id="modal-add-item">
-    <div class="modal">
-      <div class="modal-header">
-        <span class="modal-title">Add Line Item</span>
-        <button class="modal-close" onclick="closeModal('modal-add-item')">&times;</button>
-      </div>
-      <div class="modal-body">
-        <div class="form-group">
-          <label class="form-label" for="item-product-id">Product ID <span class="required">*</span></label>
-          <input class="form-control" type="number" id="item-product-id" min="1" />
-        </div>
-        <div class="form-group">
-          <label class="form-label" for="item-product-name">Product Name <span class="required">*</span></label>
-          <input class="form-control" type="text" id="item-product-name" placeholder="Enterprise SSD 2TB" />
-        </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label class="form-label" for="item-qty">Quantity <span class="required">*</span></label>
-            <input class="form-control" type="number" id="item-qty" min="1" value="1" />
-          </div>
-          <div class="form-group">
-            <label class="form-label" for="item-price">Unit Price (£) <span class="required">*</span></label>
-            <input class="form-control" type="number" id="item-price" step="0.01" min="0.01" />
-          </div>
-        </div>
-        <div id="add-item-error" class="alert alert-danger" style="display:none;"></div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn btn-secondary" onclick="closeModal('modal-add-item')">Cancel</button>
-        <button class="btn btn-primary" onclick="addItemToCart()">Add to Order</button>
-      </div>
-    </div>
-  </div>
 
   <footer class="page-footer">
     <div class="container page-footer-inner">
@@ -307,12 +271,26 @@
 
       const total = cart.reduce((sum, i) => sum + i.quantity * i.unit_price, 0);
 
-      summaryLines.innerHTML = cart.map(i => `
-        <div class="summary-row">
-          <span>${escHtml(i.product_name)} &times;${i.quantity}</span>
-          <span>${formatCurrency(i.quantity * i.unit_price)}</span>
-        </div>
-      `).join('');
+      summaryLines.innerHTML = `
+        <table style="width:100%; border-collapse:collapse; font-size:var(--text-sm);">
+          <thead>
+            <tr style="border-bottom:1px solid var(--color-slate-200); color:var(--color-slate-400); font-size:var(--text-xs); text-transform:uppercase;">
+              <th style="padding: 6px 0; text-align:left; font-weight:600;">Item</th>
+              <th style="padding: 6px 0; text-align:center; font-weight:600;">Qty</th>
+              <th style="padding: 6px 0; text-align:right; font-weight:600;">Price</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${cart.map(i => `
+              <tr style="border-bottom:1px dashed var(--color-slate-200);">
+                <td style="padding: 8px 0; color:var(--color-navy); font-weight:500;">${escHtml(i.product_name)}</td>
+                <td style="padding: 8px 0; text-align:center; color:var(--color-slate-500); font-weight:600;">&times;${i.quantity}</td>
+                <td style="padding: 8px 0; text-align:right; color:var(--color-navy); font-weight:600;">${formatCurrency(i.quantity * i.unit_price)}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
 
       totalEl.textContent = formatCurrency(total);
     }
@@ -327,33 +305,6 @@
       cart.splice(idx, 1);
       saveCart();
       renderCart();
-    }
-
-    // ── Add Item Modal ─────────────────────────────────────────────────────────
-    function openAddItemModal() { document.getElementById('modal-add-item').classList.add('open'); }
-    function closeModal(id) { document.getElementById(id).classList.remove('open'); }
-
-    function addItemToCart() {
-      const errEl = document.getElementById('add-item-error');
-      errEl.style.display = 'none';
-      const productId = parseInt(document.getElementById('item-product-id').value, 10);
-      const productName = document.getElementById('item-product-name').value.trim();
-      const qty = parseInt(document.getElementById('item-qty').value, 10);
-      const price = parseFloat(document.getElementById('item-price').value);
-
-      if (!productId || !productName || !qty || !price) {
-        errEl.textContent = 'All fields are required.';
-        errEl.style.display = 'flex';
-        return;
-      }
-
-      const existing = cart.find(i => i.product_id === productId);
-      if (existing) { existing.quantity += qty; }
-      else { cart.push({ product_id: productId, product_name: productName, unit_price: price, quantity: qty }); }
-      saveCart();
-      renderCart();
-      closeModal('modal-add-item');
-      showToast(`Added ${productName} to order.`, 'success');
     }
 
     // ── Submit Order ──────────────────────────────────────────────────
@@ -377,24 +328,20 @@
 
       try {
         // POST /orders to Order Service via placeOrder helper
-        // Phase 2: JWT Bearer token is attached automatically by placeOrder().
-        // The Order Service validates the token, extracts user_id from JWT claims,
-        // and publishes an OrderPlacedEvent to SQS after persisting the order.
         const order = await placeOrder({
           user_id: session.load()?.user_id || 0,
           items: cart,
           shipping_address: document.getElementById('o-address').value.trim() || null,
         });
 
-        showToast(`Order #${order.id} created! Inventory deduction queued via SQS.`, 'success');
+        showToast(`Order #${order.id} created! Stock deduction queued.`, 'success');
 
         successEl.innerHTML = `
-          ✅ Order <strong>#${order.id}</strong> placed for ${formatCurrency(order.total_amount)}.
+          ✅ Order <strong>#${order.id}</strong> placed for ${formatCurrency(order.total_amount)}.<br>
           Status: <strong>${order.status}</strong>.<br>
-          <small style="opacity:0.8">
-            📬 Phase 2: Stock deduction dispatched via SQS — processed asynchronously by the Inventory Service.
+          <small style="opacity:0.8; margin-top:4px; display:inline-block;">
+            📬 Your order has been submitted successfully for processing.
           </small>
-          <br><a href="admin.html" style="color:inherit;text-decoration:underline;">View in Admin →</a>
         `;
         successEl.style.display = 'flex';
 
