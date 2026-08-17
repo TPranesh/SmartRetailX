@@ -543,7 +543,7 @@
               <td>
                 <div class="table-actions">
                   <button class="btn btn-secondary btn-sm" onclick="openRestockModal(${item.product_id})">Restock</button>
-                  <button class="btn btn-danger btn-sm" onclick="deleteProduct(${item.product_id})">Delete</button>
+                  <button class="btn btn-danger btn-sm" onclick="deleteProduct(${item.product_id}, event)">Delete</button>
                 </div>
               </td>
             </tr>`;
@@ -637,27 +637,56 @@
       }
     }
 
-    async function deleteProduct(productId) {
+    async function deleteProduct(productId, event) {
       if (!confirm(`Are you sure you want to delete product #${productId}? This action cannot be undone.`)) return;
 
-      // Instantly fade row in DOM for immediate responsive feedback
-      const targetRow = document.getElementById(`inv-row-${productId}`);
-      if (targetRow) targetRow.style.opacity = '0.3';
+      // Locate row via click event or DOM ID
+      const row = (event && event.target) ? event.target.closest('tr') : document.getElementById(`inv-row-${productId}`);
+      if (row) row.style.opacity = '0.4';
 
+      let statusCodes = [];
+
+      // Issue DELETE request to Product API
       try {
-        // Issue concurrent DELETE requests to Product API and Inventory API
-        await Promise.allSettled([
-          apiFetch(`${API.PRODUCT}/products/${productId}`, { method: 'DELETE' }),
-          apiFetch(`${API.INVENTORY}/inventory/${productId}`, { method: 'DELETE' }),
-        ]);
+        const pRes = await fetch(`${API.PRODUCT}/products/${productId}`, {
+          method: 'DELETE',
+          headers: session.getToken() ? { 'Authorization': `Bearer ${session.getToken()}` } : {},
+        });
+        statusCodes.push(pRes.status);
+      } catch (err) {
+        /* fetch error */
+      }
 
-        if (targetRow) targetRow.remove();
-        showToast(`Product #${productId} deleted from catalogue and inventory.`, 'success');
+      // Issue DELETE request to Inventory API
+      try {
+        const invRes = await fetch(`${API.INVENTORY}/inventory/${productId}`, {
+          method: 'DELETE',
+          headers: session.getToken() ? { 'Authorization': `Bearer ${session.getToken()}` } : {},
+        });
+        statusCodes.push(invRes.status);
+      } catch (err) {
+        /* fetch error */
+      }
+
+      const is404 = statusCodes.includes(404);
+      const isSuccess = statusCodes.some(s => s === 200 || s === 204);
+
+      if (isSuccess) {
+        // Dynamically remove the corresponding table row from the DOM
+        if (row) row.remove();
+        showToast(`Product #${productId} deleted successfully.`, 'success');
         await loadInventory();
         loadStats();
-      } catch (err) {
-        if (targetRow) targetRow.style.opacity = '1';
-        showToast('Delete failed: ' + err.message, 'error');
+      } else if (is404) {
+        // Alert user on 404 and force table refresh
+        alert(`Product already deleted or not found (Product #${productId}).`);
+        if (row) row.remove();
+        await loadInventory();
+        loadStats();
+      } else {
+        showToast(`Could not delete Product #${productId}. Refreshing inventory...`, 'error');
+        await loadInventory();
+        loadStats();
       }
     }
 
