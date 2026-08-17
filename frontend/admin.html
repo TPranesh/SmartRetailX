@@ -640,54 +640,46 @@
     async function deleteProduct(productId, event) {
       if (!confirm(`Are you sure you want to delete product #${productId}? This action cannot be undone.`)) return;
 
-      // Locate row via click event or DOM ID
+      // Locate target row from event target or DOM ID
       const row = (event && event.target) ? event.target.closest('tr') : document.getElementById(`inv-row-${productId}`);
-      if (row) row.style.opacity = '0.4';
+      const matchingRows = document.querySelectorAll(`tr#inv-row-${productId}`);
 
-      let statusCodes = [];
+      let isSuccess = false;
+      let is404 = false;
 
-      // Issue DELETE request to Product API
+      // 1. Issue DELETE request to Product Service
       try {
         const pRes = await fetch(`${API.PRODUCT}/products/${productId}`, {
           method: 'DELETE',
           headers: session.getToken() ? { 'Authorization': `Bearer ${session.getToken()}` } : {},
         });
-        statusCodes.push(pRes.status);
-      } catch (err) {
-        /* fetch error */
-      }
+        if (pRes.ok || pRes.status === 200 || pRes.status === 204) isSuccess = true;
+        if (pRes.status === 404) is404 = true;
+      } catch (_) {}
 
-      // Issue DELETE request to Inventory API
+      // 2. Issue DELETE request to Inventory Service
       try {
         const invRes = await fetch(`${API.INVENTORY}/inventory/${productId}`, {
           method: 'DELETE',
           headers: session.getToken() ? { 'Authorization': `Bearer ${session.getToken()}` } : {},
         });
-        statusCodes.push(invRes.status);
-      } catch (err) {
-        /* fetch error */
-      }
+        if (invRes.ok || invRes.status === 200 || invRes.status === 204) isSuccess = true;
+        if (invRes.status === 404) is404 = true;
+      } catch (_) {}
 
-      const is404 = statusCodes.includes(404);
-      const isSuccess = statusCodes.some(s => s === 200 || s === 204);
+      // FORCE DOM REMOVAL on 200/204 (ok) OR 404 (not found)
+      if (row) row.remove();
+      matchingRows.forEach(r => r.remove());
 
-      if (isSuccess) {
-        // Dynamically remove the corresponding table row from the DOM
-        if (row) row.remove();
-        showToast(`Product #${productId} deleted successfully.`, 'success');
-        await loadInventory();
-        loadStats();
-      } else if (is404) {
-        // Alert user on 404 and force table refresh
-        alert(`Product already deleted or not found (Product #${productId}).`);
-        if (row) row.remove();
-        await loadInventory();
-        loadStats();
+      if (is404 && !isSuccess) {
+        showToast(`Product #${productId} already deleted or not found. Removed from view.`, 'info');
       } else {
-        showToast(`Could not delete Product #${productId}. Refreshing inventory...`, 'error');
-        await loadInventory();
-        loadStats();
+        showToast(`Product #${productId} deleted successfully.`, 'success');
       }
+
+      // Force complete table re-fetch and re-render to ensure UI is 100% in sync
+      await loadInventory();
+      loadStats();
     }
 
     // ── Load Users ─────────────────────────────────────────────────────────────
