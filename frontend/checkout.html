@@ -206,6 +206,42 @@
           </div>
         </div>
       </div>
+
+      <!-- Centered Order Confirmation Panel (shown after submitOrder succeeds) -->
+      <div id="order-confirmation-panel" style="display:none; max-width:620px; margin:2rem auto;">
+        <div class="card" style="text-align:center; padding:2.5rem 2rem; box-shadow:var(--shadow-lg); border-top: 4px solid var(--color-accent);">
+          <div style="width:72px; height:72px; background:rgba(16, 185, 129, 0.12); color:#10B981; border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 1.25rem; font-size:2.25rem; font-weight:bold;">
+            ✓
+          </div>
+          <h2 style="font-size:1.75rem; font-weight:700; color:var(--color-navy); margin-bottom:0.5rem;">Order Placed Successfully!</h2>
+          <p style="color:var(--color-slate-500); font-size:0.95rem; margin-bottom:1.75rem;">
+            Thank you for your purchase. Your order has been registered with the Order Processing Service.
+          </p>
+
+          <div style="background:var(--color-slate-100); border:1px solid var(--color-slate-200); border-radius:var(--radius-md); padding:1.25rem; margin-bottom:1.5rem; text-align:left;">
+            <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--color-slate-200); padding-bottom:0.75rem; margin-bottom:0.75rem;">
+              <span style="color:var(--color-slate-500); font-size:0.875rem;">Order Number</span>
+              <strong id="confirm-order-id" style="font-family:var(--font-mono); color:var(--color-navy); font-size:1rem;">#—</strong>
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--color-slate-200); padding-bottom:0.75rem; margin-bottom:0.75rem;">
+              <span style="color:var(--color-slate-500); font-size:0.875rem;">Total Paid</span>
+              <strong id="confirm-order-total" style="color:var(--color-navy); font-size:1.1rem;">£0.00</strong>
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <span style="color:var(--color-slate-500); font-size:0.875rem;">Order Status</span>
+              <span id="confirm-order-status"><span class="badge badge-success">confirmed</span></span>
+            </div>
+          </div>
+
+          <div id="confirm-items-summary" style="margin-bottom:2rem; text-align:left;"></div>
+
+          <div style="display:flex; gap:1rem; justify-content:center;">
+            <a href="catalog.html" class="btn btn-primary btn-lg" style="min-width:200px;">
+              Continue Shopping &rarr;
+            </a>
+          </div>
+        </div>
+      </div>
     </div>
   </main>
 
@@ -336,18 +372,41 @@
 
         showToast(`Order #${order.id} created! Stock deduction queued.`, 'success');
 
-        successEl.innerHTML = `
-          ✅ Order <strong>#${order.id}</strong> placed for ${formatCurrency(order.total_amount)}.<br>
-          Status: <strong>${order.status}</strong>.<br>
-          <small style="opacity:0.8; margin-top:4px; display:inline-block;">
-            📬 Your order has been submitted successfully for processing.
-          </small>
-        `;
-        successEl.style.display = 'flex';
+        // Populate Order Confirmation Card details
+        document.getElementById('confirm-order-id').textContent = `#${order.id}`;
+        document.getElementById('confirm-order-total').textContent = formatCurrency(order.total_amount);
+        document.getElementById('confirm-order-status').innerHTML = statusBadge(order.status);
 
+        // Populate itemized purchase summary table
+        const confirmItemsEl = document.getElementById('confirm-items-summary');
+        confirmItemsEl.innerHTML = `
+          <div style="font-size:0.8rem; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; color:var(--color-slate-400); margin-bottom:0.5rem;">Purchased Items</div>
+          <div style="border:1px solid var(--color-slate-200); border-radius:var(--radius-md); overflow:hidden; background:var(--color-white);">
+            ${cart.map(i => `
+              <div style="display:flex; justify-content:space-between; align-items:center; padding:0.65rem 0.85rem; border-bottom:1px solid var(--color-slate-100); font-size:0.875rem;">
+                <div>
+                  <div style="font-weight:600; color:var(--color-navy);">${escHtml(i.product_name)}</div>
+                  <div style="font-size:0.75rem; color:var(--color-slate-400);">${formatCurrency(i.unit_price)} &times; ${i.quantity}</div>
+                </div>
+                <div style="font-weight:600; color:var(--color-navy);">${formatCurrency(i.quantity * i.unit_price)}</div>
+              </div>
+            `).join('')}
+          </div>
+        `;
+
+        // Hide checkout form and cart panel, display centered Order Confirmation View
+        const checkoutLayout = document.querySelector('.checkout-layout');
+        if (checkoutLayout) checkoutLayout.style.display = 'none';
+
+        const pageHeader = document.querySelector('.page-header');
+        if (pageHeader) pageHeader.style.display = 'none';
+
+        const confirmationPanel = document.getElementById('order-confirmation-panel');
+        if (confirmationPanel) confirmationPanel.style.display = 'block';
+
+        // Clear active cart storage
         cart = [];
         saveCart();
-        renderCart();
       } catch (err) {
         errEl.textContent = err.message;
         errEl.style.display = 'flex';

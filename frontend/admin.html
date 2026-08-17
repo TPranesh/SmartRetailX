@@ -464,12 +464,51 @@
       const tbody = document.getElementById('inventory-tbody');
       tbody.innerHTML = '<tr class="loading-row"><td colspan="5">Loading…</td></tr>';
       try {
-        // Fetch from Inventory Service (port 8004)
-        const items = await apiFetch(`${API.INVENTORY}/inventory`);
+        const [productsResult, inventoryResult] = await Promise.allSettled([
+          apiFetch(`${API.PRODUCT}/products?limit=200`),
+          apiFetch(`${API.INVENTORY}/inventory?limit=200`),
+        ]);
+
+        const products = (productsResult.status === 'fulfilled' && Array.isArray(productsResult.value)) ? productsResult.value : [];
+        const inventory = (inventoryResult.status === 'fulfilled' && Array.isArray(inventoryResult.value)) ? inventoryResult.value : [];
+
+        // Map inventory items by product_id
+        const invMap = new Map();
+        inventory.forEach(inv => invMap.set(inv.product_id, inv));
+
+        // Combine product catalogue items with inventory records
+        const combinedMap = new Map();
+
+        // 1. Add all products from Product Service
+        products.forEach(p => {
+          const inv = invMap.get(p.id);
+          combinedMap.set(p.id, {
+            product_id: p.id,
+            product_name: p.name,
+            stock_quantity: inv ? inv.stock_quantity : (typeof p.stock_level === 'number' ? p.stock_level : 0),
+            warehouse_location: inv ? inv.warehouse_location : 'Unlinked',
+            is_unlinked: !inv,
+          });
+        });
+
+        // 2. Add any standalone inventory items not present in Product Service
+        inventory.forEach(inv => {
+          if (!combinedMap.has(inv.product_id)) {
+            combinedMap.set(inv.product_id, {
+              product_id: inv.product_id,
+              product_name: inv.product_name || `Product #${inv.product_id}`,
+              stock_quantity: inv.stock_quantity,
+              warehouse_location: inv.warehouse_location || 'Warehouse A',
+              is_unlinked: false,
+            });
+          }
+        });
+
+        const items = Array.from(combinedMap.values());
         document.getElementById('stat-inv').textContent = items.length;
 
         if (items.length === 0) {
-          tbody.innerHTML = `<tr><td colspan="5" style="padding:var(--sp-8);text-align:center;color:var(--color-slate-400);">No inventory records found.</td></tr>`;
+          tbody.innerHTML = `<tr><td colspan="5" style="padding:var(--sp-8);text-align:center;color:var(--color-slate-400);">No products or inventory records found.</td></tr>`;
           return;
         }
 
@@ -478,14 +517,17 @@
         tbody.innerHTML = items.map(item => {
           const pct = Math.min(100, Math.round((item.stock_quantity / maxQty) * 100));
           const barClass = item.stock_quantity === 0 ? 'out' : item.stock_quantity < 10 ? 'low' : '';
-          const stockBadge = item.stock_quantity === 0
+          const stockBadge = item.is_unlinked
+            ? `<span class="badge badge-warning" title="No matching record in Inventory Service">Unlinked (0)</span>`
+            : item.stock_quantity === 0
             ? `<span class="badge badge-danger">Out of stock</span>`
             : item.stock_quantity < 10
             ? `<span class="badge badge-warning">Low</span>`
             : `<span class="badge badge-success">OK</span>`;
+
           return `
-            <tr>
-              <td>${item.product_id}</td>
+            <tr id="inv-row-${item.product_id}">
+              <td><code class="text-mono" style="font-size:var(--text-xs);">#${item.product_id}</code></td>
               <td>${escHtml(item.product_name)}</td>
               <td>
                 <div class="stock-bar-wrapper">
@@ -525,7 +567,7 @@
       if (!qty || qty < 1) { errEl.textContent = 'Enter a positive quantity.'; errEl.style.display = 'flex'; return; }
       try {
         // PATCH /inventory/{product_id}/restock on Inventory Service (port 8004)
-        await apiFetch(`${API.INVENTORY}/inventory/${restockProductId}/restock?quantity=${qty}`, { method: 'PATCH' });
+        await apiFetch(`${API.INVENTORY}/${restockProductId}/restock?quantity=${qty}`, { method: 'PATCH' });
         closeModal('modal-restock');
         showToast(`Product #${restockProductId} restocked by ${qty} units.`, 'success');
         loadInventory();
@@ -586,7 +628,8 @@
 
         closeModal('modal-add-inventory');
         showToast(`Product "${productName}" and inventory record created successfully!`, 'success');
-        loadInventory();
+        await loadInventory();
+        loadStats();
       } catch (err) {
         errEl.textContent = err.message;
         errEl.style.display = 'flex';
@@ -595,11 +638,19 @@
 
     async function deleteProduct(productId) {
       if (!confirm(`Are you sure you want to delete product #${productId}? This action cannot be undone.`)) return;
+
+      // Instantly hide row from DOM for immediate feedback
+      const targetRow = document.getElementById(`inv-row-${productId}`);
+      if (targetRow) targetRow.style.opacity = '0.4';
+
       try {
         await apiFetch(`${API.PRODUCT}/products/${productId}`, { method: 'DELETE' });
+        if (targetRow) targetRow.remove();
         showToast(`Product #${productId} deleted successfully.`, 'success');
-        loadInventory();
+        await loadInventory();
+        loadStats();
       } catch (err) {
+        if (targetRow) targetRow.style.opacity = '1';
         showToast('Delete failed: ' + err.message, 'error');
       }
     }
