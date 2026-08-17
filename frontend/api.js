@@ -17,6 +17,39 @@ const API = {
   INVENTORY: 'http://localhost:8004',
 };
 
+// ── Cart Storage & User Isolation ──────────────────────────────────────────────
+/**
+ * Manages shopping cart state in localStorage isolated per user ID.
+ * Storage key format: `srx_cart_${user_id}` or `srx_cart_guest`.
+ */
+const cartManager = {
+  getStorageKey() {
+    const user = session.getUser();
+    return (user && user.user_id) ? `srx_cart_${user.user_id}` : 'srx_cart_guest';
+  },
+
+  getCart() {
+    try {
+      const key = this.getStorageKey();
+      return JSON.parse(localStorage.getItem(key) || '[]');
+    } catch (_) {
+      return [];
+    }
+  },
+
+  saveCart(cartItems) {
+    const key = this.getStorageKey();
+    localStorage.setItem(key, JSON.stringify(cartItems));
+  },
+
+  clearActiveCart() {
+    const key = this.getStorageKey();
+    localStorage.removeItem(key);
+    sessionStorage.removeItem('srx_cart');
+    localStorage.removeItem('srx_cart');
+  }
+};
+
 // ── JWT Session Store ─────────────────────────────────────────────────────────
 /**
  * Stores the JWT access_token and user metadata in localStorage.
@@ -48,10 +81,17 @@ const session = {
     try { return JSON.parse(localStorage.getItem('srx_user')); } catch (_) { return null; }
   },
 
-  /** Clears both the token and user metadata on logout. */
+  /** Clears both the token, user metadata, and active cart on logout or session expiration. */
   clear() {
+    cartManager.clearActiveCart();
     localStorage.removeItem('srx_token');
     localStorage.removeItem('srx_user');
+  },
+
+  logout() {
+    this.clear();
+    showToast('Signed out successfully.', 'info');
+    setTimeout(() => { window.location.href = 'index.html'; }, 500);
   },
 
   isLoggedIn() { return !!this.getToken(); },
@@ -83,6 +123,7 @@ function decodeJwtPayload(token) {
  *   - Content-Type: application/json
  *   - Authorization: Bearer <token>  (automatically attached if logged in)
  *   - Consistent error extraction from FastAPI {detail: "..."} responses
+ *   - Network error detection (doesn't trigger 401 session wipes on connection failures)
  */
 async function apiFetch(url, options = {}) {
   const headers = { 'Content-Type': 'application/json' };
@@ -104,7 +145,13 @@ async function apiFetch(url, options = {}) {
     merged.body = JSON.stringify(merged.body);
   }
 
-  const response = await fetch(url, merged);
+  let response;
+  try {
+    response = await fetch(url, merged);
+  } catch (netErr) {
+    // Intercept network/CORS connectivity errors so session is NOT wiped
+    throw new Error(`Unable to reach service at ${url}. Please check if the service is running.`);
+  }
 
   if (response.status === 401) {
     // Token expired or invalid — clear session and redirect to login
@@ -125,6 +172,25 @@ async function apiFetch(url, options = {}) {
 
   if (response.status === 204) return null;
   return response.json();
+}
+
+// ── Order Placement Helper ───────────────────────────────────────────────────
+/**
+ * Places an order via POST /orders on Order Service.
+ * Ensures Authorization header is explicitly attached with Bearer token.
+ */
+async function placeOrder(orderData) {
+  const token = session.getToken();
+  if (!token) {
+    throw new Error('You must be signed in to place an order.');
+  }
+  return await apiFetch(`${API.ORDER}/orders`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+    },
+    body: orderData,
+  });
 }
 
 // ── RBAC: Hide Admin Nav Link for Non-Admin Users ────────────────────────────

@@ -337,13 +337,13 @@
       }
     }
 
-    // ── Add to Order (pass selection via sessionStorage) ───────────────────────
+    // ── Add to Order (persisted per user session via cartManager) ──────────────
     function addToOrder(id, name, price) {
-      const cart = JSON.parse(sessionStorage.getItem('srx_cart') || '[]');
+      const cart = cartManager.getCart();
       const existing = cart.find(i => i.product_id === id);
       if (existing) { existing.quantity += 1; }
       else { cart.push({ product_id: id, product_name: name, unit_price: price, quantity: 1 }); }
-      sessionStorage.setItem('srx_cart', JSON.stringify(cart));
+      cartManager.saveCart(cart);
       showToast(`"${name}" added to order.`, 'success');
     }
 

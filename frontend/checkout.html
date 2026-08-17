@@ -269,9 +269,9 @@
     checkServiceHealth(API.INVENTORY, 'dot-inventory');
 
     // ── Cart State ─────────────────────────────────────────────────────────────
-    let cart = JSON.parse(sessionStorage.getItem('srx_cart') || '[]');
+    let cart = cartManager.getCart();
 
-    function saveCart() { sessionStorage.setItem('srx_cart', JSON.stringify(cart)); }
+    function saveCart() { cartManager.saveCart(cart); }
 
     function renderCart() {
       const container = document.getElementById('cart-items');
@@ -376,20 +376,14 @@
       btn.textContent = 'Submitting…';
 
       try {
-        // POST /orders to Order Service (port 8003)
-        // Phase 2: JWT Bearer token is attached automatically by apiFetch().
+        // POST /orders to Order Service via placeOrder helper
+        // Phase 2: JWT Bearer token is attached automatically by placeOrder().
         // The Order Service validates the token, extracts user_id from JWT claims,
         // and publishes an OrderPlacedEvent to SQS after persisting the order.
-        // The Inventory Service SQS consumer deducts stock asynchronously.
-        const order = await apiFetch(`${API.ORDER}/orders`, {
-          method: 'POST',
-          body: {
-            // user_id is still sent in the body for schema compatibility,
-            // but the Order Service overrides it with the JWT claim value.
-            user_id: session.load()?.user_id || 0,
-            items: cart,
-            shipping_address: document.getElementById('o-address').value.trim() || null,
-          },
+        const order = await placeOrder({
+          user_id: session.load()?.user_id || 0,
+          items: cart,
+          shipping_address: document.getElementById('o-address').value.trim() || null,
         });
 
         showToast(`Order #${order.id} created! Inventory deduction queued via SQS.`, 'success');
