@@ -195,6 +195,21 @@ def deduct_stock(payload: StockDeductRequest, db: Session = Depends(get_db)):
     )
 
 
+@app.delete(
+    "/inventory/{product_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    tags=["Inventory"],
+    summary="Delete an inventory record",
+)
+def delete_inventory_item(product_id: int, db: Session = Depends(get_db)):
+    """Deletes the inventory stock record for a product."""
+    item = db.query(InventoryItem).filter(InventoryItem.product_id == product_id).first()
+    if not item:
+        raise HTTPException(status_code=404, detail=f"No inventory record for product {product_id}.")
+    db.delete(item)
+    db.commit()
+
+
 # ── Local Dev Fallback: Simulated SQS Event ───────────────────────────────────
 
 @app.post(

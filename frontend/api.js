@@ -193,6 +193,34 @@ async function placeOrder(orderData) {
   });
 }
 
+// ── Customer Order History Helper ─────────────────────────────────────────────
+/**
+ * Fetches order history for the currently logged-in user.
+ * Sends Authorization: Bearer <token>. Filters results to match user_id if customer.
+ */
+async function fetchMyOrders() {
+  const user = session.getUser();
+  if (!user || !user.user_id) {
+    throw new Error('You must be signed in to view your order history.');
+  }
+
+  let orders = [];
+  try {
+    orders = await apiFetch(`${API.ORDER}/orders/user/${user.user_id}`);
+  } catch (_) {
+    orders = await apiFetch(`${API.ORDER}/orders?limit=200`);
+  }
+
+  if (!Array.isArray(orders)) orders = [];
+
+  // Filter orders by user_id for customers
+  if (!session.isAdmin()) {
+    orders = orders.filter(o => o.user_id === user.user_id);
+  }
+
+  return orders;
+}
+
 // ── RBAC: Hide Admin Nav Link for Non-Admin Users ────────────────────────────
 /**
  * Reads the stored role and removes the Admin navigation link

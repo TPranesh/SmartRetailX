@@ -58,6 +58,7 @@
         <a href="index.html">Sign In</a>
         <a href="catalog.html">Product Catalogue</a>
         <a href="checkout.html">New Order</a>
+        <a href="orders.html">My Orders</a>
         <a href="admin.html" class="active">Admin</a>
       </nav>
       <div class="topbar-actions">
@@ -639,14 +640,19 @@
     async function deleteProduct(productId) {
       if (!confirm(`Are you sure you want to delete product #${productId}? This action cannot be undone.`)) return;
 
-      // Instantly hide row from DOM for immediate feedback
+      // Instantly fade row in DOM for immediate responsive feedback
       const targetRow = document.getElementById(`inv-row-${productId}`);
-      if (targetRow) targetRow.style.opacity = '0.4';
+      if (targetRow) targetRow.style.opacity = '0.3';
 
       try {
-        await apiFetch(`${API.PRODUCT}/products/${productId}`, { method: 'DELETE' });
+        // Issue concurrent DELETE requests to Product API and Inventory API
+        await Promise.allSettled([
+          apiFetch(`${API.PRODUCT}/products/${productId}`, { method: 'DELETE' }),
+          apiFetch(`${API.INVENTORY}/inventory/${productId}`, { method: 'DELETE' }),
+        ]);
+
         if (targetRow) targetRow.remove();
-        showToast(`Product #${productId} deleted successfully.`, 'success');
+        showToast(`Product #${productId} deleted from catalogue and inventory.`, 'success');
         await loadInventory();
         loadStats();
       } catch (err) {
