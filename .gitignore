@@ -1,0 +1,27 @@
+# 1. Secrets and Environment Variables
+.env
+*.env
+credentials.json
+
+# 2. Terraform Specific Files
+.terraform/
+*.tfstate
+*.tfstate.backup
+.terraform.lock.hcl
+terraform.tfvars
+
+# 3. Python Cache and Virtual Environments
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+env/
+.pytest_cache/
+
+# 4. Local Databases
+*.db
+*.sqlite3
+
+# 5. OS Generated Files
+.DS_Store
+Thumbs.db

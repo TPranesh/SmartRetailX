@@ -1,5 +1,5 @@
 # terraform/main.tf
-# SmartRetailX - AWS Infrastructure (ECS Fargate + SQS)
+# SmartRetailX - Core AWS Infrastructure (ECS Fargate + SQS)
 
 terraform {
   required_version = ">= 1.5.0"
@@ -8,6 +8,14 @@ terraform {
       source  = "hashicorp/aws"
       version = "~> 5.0"
     }
+    random = {
+      source  = "hashicorp/random"
+      version = "~> 3.5"
+    }
+    archive = {
+      source  = "hashicorp/archive"
+      version = "~> 2.4"
+    }
   }
 }
 
@@ -15,21 +23,8 @@ provider "aws" {
   region = var.aws_region
 }
 
-# ── Variables ────────────────────────────────────────────────────────────────
-variable "aws_region" {
-  type        = string
-  default     = "eu-west-1"
-  description = "AWS region for deployment"
-}
-
-variable "environment" {
-  type        = string
-  default     = "production"
-  description = "Deployment environment"
-}
-
 # ── Amazon SQS Event Bus ─────────────────────────────────────────────────────
-# OrderPlaced & OrderCancelled events bus between Order & Inventory services
+# OrderPlaced & OrderCancelled events bus between Order, Inventory & Notification services
 resource "aws_sqs_queue" "order_events_dlq" {
   name                      = "SmartRetailX-OrderEvents-DLQ"
   message_retention_seconds = 1209600 # 14 days
@@ -138,12 +133,6 @@ resource "aws_iam_role_policy_attachment" "ecs_task_sqs_attachment" {
   policy_arn = aws_iam_policy.sqs_access.arn
 }
 
-# ── CloudWatch Log Group ──────────────────────────────────────────────────────
-resource "aws_cloudwatch_log_group" "ecs_logs" {
-  name              = "/ecs/smartretailx"
-  retention_in_days = 30
-}
-
 # ── ECS Fargate Task Definition Example (Order Service) ──────────────────────
 resource "aws_ecs_task_definition" "order_service" {
   family                   = "smartretailx-order-service"
@@ -168,12 +157,13 @@ resource "aws_ecs_task_definition" "order_service" {
       environment = [
         { name = "PYTHONPATH", value = "/app" },
         { name = "SQS_QUEUE_URL", value = aws_sqs_queue.order_events.url },
-        { name = "AWS_REGION", value = var.aws_region }
+        { name = "AWS_REGION", value = var.aws_region },
+        { name = "DATABASE_URL", value = "postgresql://${var.db_username}:${var.db_password}@${aws_db_instance.postgres.endpoint}/${var.db_name}" }
       ]
       logConfiguration = {
         logDriver = "awslogs"
         options = {
-          "awslogs-group"         = aws_cloudwatch_log_group.ecs_logs.name
+          "awslogs-group"         = aws_cloudwatch_log_group.ecs_order_logs.name
           "awslogs-region"        = var.aws_region
           "awslogs-stream-prefix" = "order-service"
         }
@@ -185,15 +175,4 @@ resource "aws_ecs_task_definition" "order_service" {
     Environment = var.environment
     Service     = "OrderService"
   }
-}
-
-# ── Outputs ──────────────────────────────────────────────────────────────────
-output "sqs_queue_url" {
-  value       = aws_sqs_queue.order_events.url
-  description = "URL of the SQS Order Events Queue"
-}
-
-output "ecs_cluster_name" {
-  value       = aws_ecs_cluster.main.name
-  description = "Name of the ECS Cluster"
 }
