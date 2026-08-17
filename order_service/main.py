@@ -10,7 +10,10 @@ Phase 2 changes:
   - No direct HTTP call to Inventory Service — fully decoupled
 """
 
+import json
 import logging
+import os
+import boto3
 
 from fastapi import FastAPI, Depends, HTTPException, status, Query
 from fastapi.middleware.cors import CORSMiddleware
@@ -104,6 +107,11 @@ def create_order(
     logger.info("Order #%d created for user #%d (£%.2f)", order.id, order.user_id, order.total_amount)
 
     # ── Publish to SQS (decoupled from Inventory Service) ────────────────────
+    sqs_queue_url = os.getenv("SQS_QUEUE_URL")
+    aws_access_key = os.getenv("AWS_ACCESS_KEY_ID")
+    aws_secret_key = os.getenv("AWS_SECRET_ACCESS_KEY")
+    aws_region = os.getenv("AWS_REGION", "eu-west-1")
+
     items_payload = [
         {
             "product_id": i.product_id,
@@ -113,16 +121,39 @@ def create_order(
         }
         for i in order.items
     ]
-    published = publish_order_placed_event(
-        order_id=order.id,
-        user_id=order.user_id,
-        items=items_payload,
-    )
-    if not published:
-        logger.warning(
-            "SQS publish skipped for order #%d — inventory deduction will not happen automatically.",
-            order.id,
-        )
+
+    try:
+        if sqs_queue_url:
+            sqs_kwargs = {"region_name": aws_region}
+            if aws_access_key and aws_secret_key:
+                sqs_kwargs["aws_access_key_id"] = aws_access_key
+                sqs_kwargs["aws_secret_access_key"] = aws_secret_key
+
+            sqs_client = boto3.client("sqs", **sqs_kwargs)
+            message_payload = json.dumps({
+                "event_type": "OrderPlaced",
+                "order_id": order.id,
+                "user_id": order.user_id,
+                "total": float(order.total_amount),
+                "items": items_payload,
+            })
+            sqs_client.send_message(
+                QueueUrl=sqs_queue_url,
+                MessageBody=message_payload,
+            )
+            logger.info("OrderPlaced SQS message sent for order #%d to %s", order.id, sqs_queue_url)
+        else:
+            publish_order_placed_event(
+                order_id=order.id,
+                user_id=order.user_id,
+                items=items_payload,
+            )
+    except Exception as sqs_err:
+        logger.error("SQS publish failed for order #%d: %s. Order saved locally.", order.id, str(sqs_err))
+        try:
+            publish_order_placed_event(order_id=order.id, user_id=order.user_id, items=items_payload)
+        except Exception:
+            pass
 
     return order
 

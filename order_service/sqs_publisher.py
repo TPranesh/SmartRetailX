@@ -30,7 +30,16 @@ INVENTORY_SERVICE_URL: str = os.environ.get("INVENTORY_SERVICE_URL", "http://loc
 
 
 def _get_sqs_client():
-    return boto3.client("sqs", region_name=AWS_REGION)
+    aws_access_key = os.environ.get("AWS_ACCESS_KEY_ID")
+    aws_secret_key = os.environ.get("AWS_SECRET_ACCESS_KEY")
+    aws_region = os.environ.get("AWS_REGION", "eu-west-1")
+
+    kwargs = {"region_name": aws_region}
+    if aws_access_key and aws_secret_key:
+        kwargs["aws_access_key_id"] = aws_access_key
+        kwargs["aws_secret_access_key"] = aws_secret_key
+
+    return boto3.client("sqs", **kwargs)
 
 
 def _http_fallback_order_placed(order_id: int, user_id: int, items: list) -> bool:

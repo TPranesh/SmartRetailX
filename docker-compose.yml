@@ -35,7 +35,10 @@ services:
       - PYTHONPATH=/app
       - JWT_SECRET_KEY=smartretailx_secret_key_2025
       - INVENTORY_SERVICE_URL=http://inventory-service:8004
-      # SQS_QUEUE_URL: set if using real AWS SQS queue
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_REGION=${AWS_REGION}
+      - SQS_QUEUE_URL=${SQS_QUEUE_URL}
     depends_on:
       - inventory-service
     restart: always
