@@ -9,7 +9,7 @@ Phase 2 changes:
   - After committing an order, publishes an OrderPlacedEvent to AWS SQS
   - No direct HTTP call to Inventory Service — fully decoupled
 """
-
+import requests
 import json
 import logging
 import os
