@@ -80,15 +80,16 @@ def seed_inventory(db: Session) -> None:
 
 @app.on_event("startup")
 def startup_tasks():
-    """Seeds data and starts the SQS consumer background thread."""
+    """Seeds data on startup."""
     db = SessionLocal()
     try:
         seed_inventory(db)
     finally:
         db.close()
 
-    logger.info("Starting SQS consumer background thread...")
-    start_consumer_thread()
+    # Note: SQS consumer thread disabled — SQS queue is consumed exclusively by AWS Lambda Notification Service.
+    # Inventory Service relies on synchronous HTTP POST /inventory/deduct for stock reductions.
+    # start_consumer_thread()
 
 
 # ── Health Check ──────────────────────────────────────────────────────────────
