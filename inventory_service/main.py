@@ -152,14 +152,21 @@ def get_inventory_item(product_id: int, db: Session = Depends(get_db)):
     "/inventory/{product_id}/restock",
     response_model=InventoryItemResponse,
     tags=["Inventory"],
-    summary="Restock a product",
+    summary="Restock a product (creates inventory record if not found)",
 )
 def restock_item(product_id: int, quantity: int = Query(..., gt=0), db: Session = Depends(get_db)):
-    """Adds stock to an existing inventory record."""
+    """Adds stock to an existing inventory record. If not found, creates a new inventory record."""
     item = db.query(InventoryItem).filter(InventoryItem.product_id == product_id).first()
     if not item:
-        raise HTTPException(status_code=404, detail=f"No inventory record for product {product_id}.")
-    item.stock_quantity += quantity
+        item = InventoryItem(
+            product_id=product_id,
+            product_name=f"Product #{product_id}",
+            stock_quantity=quantity,
+            warehouse_location="Warehouse A",
+        )
+        db.add(item)
+    else:
+        item.stock_quantity += quantity
     db.commit()
     db.refresh(item)
     return item

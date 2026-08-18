@@ -567,8 +567,7 @@
       const qty = parseInt(document.getElementById('restock-qty').value, 10);
       if (!qty || qty < 1) { errEl.textContent = 'Enter a positive quantity.'; errEl.style.display = 'flex'; return; }
       try {
-        // PATCH /inventory/{product_id}/restock on Inventory Service (port 8004)
-        await apiFetch(`${API.INVENTORY}/${restockProductId}/restock?quantity=${qty}`, { method: 'PATCH' });
+        await restockProduct(restockProductId, qty);
         closeModal('modal-restock');
         showToast(`Product #${restockProductId} restocked by ${qty} units.`, 'success');
         loadInventory();

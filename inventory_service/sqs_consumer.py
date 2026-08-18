@@ -105,6 +105,19 @@ def _process_order_cancelled_event(body: dict, db) -> None:
         )
 
 
+def _get_sqs_client():
+    aws_access_key = os.environ.get("AWS_ACCESS_KEY_ID")
+    aws_secret_key = os.environ.get("AWS_SECRET_ACCESS_KEY")
+    aws_region = os.environ.get("AWS_REGION", "eu-west-1")
+
+    kwargs = {"region_name": aws_region}
+    if aws_access_key and aws_secret_key:
+        kwargs["aws_access_key_id"] = aws_access_key
+        kwargs["aws_secret_access_key"] = aws_secret_key
+
+    return boto3.client("sqs", **kwargs)
+
+
 def _poll_loop() -> None:
     """Main SQS polling loop — runs in a daemon thread."""
     if not SQS_QUEUE_URL:
@@ -116,7 +129,7 @@ def _poll_loop() -> None:
         return
 
     logger.info("[SQS Consumer] Starting. Polling: %s", SQS_QUEUE_URL)
-    sqs = boto3.client("sqs", region_name=AWS_REGION)
+    sqs = _get_sqs_client()
     backoff = 2
 
     while True:

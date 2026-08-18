@@ -221,6 +221,16 @@ async function fetchMyOrders() {
   return orders;
 }
 
+// ── Restock Product Helper ───────────────────────────────────────────────────
+/**
+ * Restocks a product in the Inventory Service (creates inventory record if not found).
+ */
+async function restockProduct(productId, quantity) {
+  return await apiFetch(`${API.INVENTORY}/inventory/${productId}/restock?quantity=${quantity}`, {
+    method: 'PATCH',
+  });
+}
+
 // ── RBAC: Hide Admin Nav Link for Non-Admin Users ────────────────────────────
 /**
  * Reads the stored role and removes the Admin navigation link
