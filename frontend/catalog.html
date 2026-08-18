@@ -305,9 +305,10 @@
         }
 
         // Fetch live stock levels from Inventory Service (Port 8004 — single source of truth)
-        await Promise.all(products.map(async p => {
-          p.stock_level = await getLiveInventoryStock(p.id);
-        }));
+        const invMap = await getLiveInventoryMap();
+        products.forEach(p => {
+          p.stock_level = invMap.has(p.id) ? invMap.get(p.id) : (p.stock_level || 0);
+        });
 
         grid.innerHTML = products.map(p => `
           <div class="product-card">

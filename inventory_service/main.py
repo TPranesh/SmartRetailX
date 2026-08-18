@@ -174,32 +174,66 @@ def restock_item(product_id: int, quantity: int = Query(..., gt=0), db: Session 
 
 @app.post(
     "/inventory/deduct",
-    response_model=StockDeductResponse,
     tags=["Inventory"],
-    summary="Manually deduct stock for a product",
+    summary="Deduct stock for product items",
 )
 def deduct_stock(payload: StockDeductRequest, db: Session = Depends(get_db)):
     """
-    Manually deducts stock. Useful for admin corrections.
-    Note: Automatic deductions from orders arrive via SQS consumer (or the
-    local fallback endpoint below when SQS is not configured).
+    Deducts stock for items provided in payload.
+    Supports either batch `items: [...]` list or single `product_id` and `quantity`.
+    If an inventory record is missing for a product, creates it with 0 stock.
+    Stock quantity cannot drop below 0.
     """
-    item = db.query(InventoryItem).filter(InventoryItem.product_id == payload.product_id).first()
-    if not item:
-        raise HTTPException(status_code=404, detail=f"No inventory record for product {payload.product_id}.")
-    if item.stock_quantity < payload.quantity:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Insufficient stock. Available: {item.stock_quantity}, requested: {payload.quantity}.",
-        )
-    item.stock_quantity -= payload.quantity
-    db.commit()
-    return StockDeductResponse(
-        product_id=payload.product_id,
-        deducted=payload.quantity,
-        remaining_stock=item.stock_quantity,
-        message=f"Successfully deducted {payload.quantity} unit(s).",
-    )
+    items_to_process = []
+    if payload.items:
+        items_to_process = payload.items
+    elif payload.product_id and payload.quantity:
+        items_to_process = [payload]
+
+    if not items_to_process:
+        raise HTTPException(status_code=400, detail="No items or product_id/quantity specified for stock deduction.")
+
+    results = []
+    for item in items_to_process:
+        prod_id = getattr(item, 'product_id', None) if not isinstance(item, dict) else item.get('product_id')
+        qty = getattr(item, 'quantity', 0) if not isinstance(item, dict) else item.get('quantity', 0)
+
+        if not prod_id or qty <= 0:
+            continue
+
+        inv_item = db.query(InventoryItem).filter(InventoryItem.product_id == prod_id).first()
+        if not inv_item:
+            inv_item = InventoryItem(
+                product_id=prod_id,
+                product_name=f"Product #{prod_id}",
+                stock_quantity=0,
+                warehouse_location="Warehouse A",
+            )
+            db.add(inv_item)
+            db.commit()
+            db.refresh(inv_item)
+
+        inv_item.stock_quantity = max(0, inv_item.stock_quantity - qty)
+        db.commit()
+        db.refresh(inv_item)
+
+        results.append({
+            "product_id": prod_id,
+            "deducted": qty,
+            "remaining_stock": inv_item.stock_quantity,
+        })
+
+    first_pid = results[0]["product_id"] if results else (payload.product_id or 0)
+    first_qty = results[0]["deducted"] if results else (payload.quantity or 0)
+    first_rem = results[0]["remaining_stock"] if results else 0
+
+    return {
+        "product_id": first_pid,
+        "deducted": first_qty,
+        "remaining_stock": first_rem,
+        "message": f"Successfully processed stock deduction for {len(results)} item(s).",
+        "results": results,
+    }
 
 
 @app.delete(

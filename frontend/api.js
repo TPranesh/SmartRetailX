@@ -304,6 +304,23 @@ async function getLiveInventoryStock(productId) {
   }
 }
 
+/**
+ * Fetches all inventory stock levels from the Inventory Service (Port 8004) in a single batch query.
+ * Returns a Map keyed by product_id -> stock_quantity.
+ */
+async function getLiveInventoryMap() {
+  try {
+    const items = await apiFetch(`${API.INVENTORY}/inventory?limit=200`);
+    const map = new Map();
+    if (Array.isArray(items)) {
+      items.forEach(item => map.set(item.product_id, item.stock_quantity));
+    }
+    return map;
+  } catch (_) {
+    return new Map();
+  }
+}
+
 // ── Service Health Check ───────────────────────────────────────────────────────
 async function checkServiceHealth(baseUrl, dotId) {
   const dot = document.getElementById(dotId);

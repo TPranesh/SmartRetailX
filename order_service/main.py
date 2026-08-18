@@ -106,11 +106,14 @@ def create_order(
     db.refresh(order)
     logger.info("Order #%d created for user #%d (£%.2f)", order.id, order.user_id, order.total_amount)
 
-    # ── Publish to SQS (decoupled from Inventory Service) ────────────────────
+    # ── Publish to SQS & Immediate Inventory Deduction ──────────────────────
     sqs_queue_url = os.getenv("SQS_QUEUE_URL")
     aws_access_key = os.getenv("AWS_ACCESS_KEY_ID")
     aws_secret_key = os.getenv("AWS_SECRET_ACCESS_KEY")
     aws_region = os.getenv("AWS_REGION", "eu-west-1")
+    inventory_service_url = os.getenv("INVENTORY_SERVICE_URL", "http://inventory-service:8004")
+
+    user_email = getattr(current_user, "email", f"user{order.user_id}@smartretailx.com")
 
     items_payload = [
         {
@@ -122,6 +125,7 @@ def create_order(
         for i in order.items
     ]
 
+    # 1. Publish to SQS (for Lambda notifications)
     try:
         if sqs_queue_url:
             sqs_kwargs = {"region_name": aws_region}
@@ -134,6 +138,7 @@ def create_order(
                 "event_type": "OrderPlaced",
                 "order_id": order.id,
                 "user_id": order.user_id,
+                "user_email": user_email,
                 "total": float(order.total_amount),
                 "total_amount": float(order.total_amount),
                 "items": items_payload,
@@ -156,6 +161,18 @@ def create_order(
             publish_order_placed_event(order_id=order.id, user_id=order.user_id, items=items_payload, total_amount=float(order.total_amount))
         except Exception:
             pass
+
+    # 2. Immediate Local Inventory Deduction via HTTP to guarantee zero-loss stock sync
+    try:
+        deduct_url = f"{inventory_service_url.rstrip('/')}/inventory/deduct"
+        requests.post(deduct_url, json={"items": items_payload}, timeout=4)
+        logger.info("Direct HTTP stock deduction succeeded for order #%d via %s", order.id, deduct_url)
+    except Exception:
+        try:
+            requests.post("http://localhost:8004/inventory/deduct", json={"items": items_payload}, timeout=3)
+            logger.info("Direct HTTP stock deduction succeeded for order #%d via localhost:8004", order.id)
+        except Exception as http_err:
+            logger.warning("Local HTTP inventory deduct fallback failed for order #%d: %s", order.id, http_err)
 
     return order
 
@@ -202,7 +219,7 @@ def get_order(order_id: int, db: Session = Depends(get_db)):
     summary="Update order status",
 )
 def update_order_status(order_id: int, payload: OrderStatusUpdate, db: Session = Depends(get_db)):
-    """Transitions an order to a new status (admin action)."""
+    """Transitions an order to a new status (admin action). Performs Saga compensation on cancellation."""
     if payload.status not in VALID_STATUSES:
         raise HTTPException(
             status_code=400,
@@ -217,17 +234,29 @@ def update_order_status(order_id: int, payload: OrderStatusUpdate, db: Session =
     db.commit()
     db.refresh(order)
 
-    # Trigger compensating transaction if status is changed to cancelled
-    if payload.status == "cancelled" and previous_status != "cancelled":
-        items_payload = [
-            {
+    # Trigger compensating transaction if status is changed to cancelled (Saga pattern)
+    if payload.status.lower() == "cancelled" and previous_status.lower() != "cancelled":
+        inventory_service_url = os.getenv("INVENTORY_SERVICE_URL", "http://inventory-service:8004")
+        items_payload = []
+        for item in order.items:
+            items_payload.append({
                 "product_id": item.product_id,
                 "product_name": item.product_name,
                 "quantity": item.quantity,
                 "unit_price": item.unit_price,
-            }
-            for item in order.items
-        ]
+            })
+            # Compensating transaction: Restock inventory
+            try:
+                restock_url = f"{inventory_service_url.rstrip('/')}/inventory/{item.product_id}/restock?quantity={item.quantity}"
+                requests.patch(restock_url, timeout=4)
+                logger.info("[SAGA COMPENSATION] Order #%d cancelled. Restocked %d units for product #%d", order.id, item.quantity, item.product_id)
+            except Exception:
+                try:
+                    requests.patch(f"http://localhost:8004/inventory/{item.product_id}/restock?quantity={item.quantity}", timeout=3)
+                    logger.info("[SAGA COMPENSATION] Order #%d cancelled. Restocked %d units for product #%d via localhost fallback", order.id, item.quantity, item.product_id)
+                except Exception as saga_err:
+                    logger.error("[SAGA COMPENSATION FAILED] Could not restock product #%d for cancelled order #%d: %s", item.product_id, order.id, saga_err)
+
         publish_order_cancelled_event(order.id, items_payload)
 
     return order

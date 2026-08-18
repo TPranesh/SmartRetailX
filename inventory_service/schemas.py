@@ -17,9 +17,15 @@ class InventoryItemCreate(BaseModel):
     warehouse_location: Optional[str] = Field(default=None, examples=["Warehouse A - Shelf 3"])
 
 
-class StockDeductRequest(BaseModel):
+class StockDeductItem(BaseModel):
     product_id: int = Field(..., examples=[1])
     quantity: int = Field(..., gt=0, examples=[5])
+
+
+class StockDeductRequest(BaseModel):
+    items: Optional[List[StockDeductItem]] = None
+    product_id: Optional[int] = None
+    quantity: Optional[int] = None
 
 
 class OrderPlacedEvent(BaseModel):
