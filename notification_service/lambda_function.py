@@ -23,7 +23,7 @@ def lambda_handler(event, context):
         event_type = body.get('event_type', 'ORDER_EVENT')
         order_id = body.get('order_id', 'UNKNOWN')
         user_email = body.get('user_email', 'customer@smartretailx.com')
-        total_amount = body.get('total_amount', 0.0)
+        total_amount = body.get('total_amount', body.get('total', 0.0))
         
         logger.info(
             f"[MOCK DISPATCH SUCCESS] Event: {event_type} | "

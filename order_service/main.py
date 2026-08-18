@@ -135,6 +135,7 @@ def create_order(
                 "order_id": order.id,
                 "user_id": order.user_id,
                 "total": float(order.total_amount),
+                "total_amount": float(order.total_amount),
                 "items": items_payload,
             })
             sqs_client.send_message(
@@ -147,11 +148,12 @@ def create_order(
                 order_id=order.id,
                 user_id=order.user_id,
                 items=items_payload,
+                total_amount=float(order.total_amount),
             )
     except Exception as sqs_err:
         logger.error("SQS publish failed for order #%d: %s. Order saved locally.", order.id, str(sqs_err))
         try:
-            publish_order_placed_event(order_id=order.id, user_id=order.user_id, items=items_payload)
+            publish_order_placed_event(order_id=order.id, user_id=order.user_id, items=items_payload, total_amount=float(order.total_amount))
         except Exception:
             pass
 

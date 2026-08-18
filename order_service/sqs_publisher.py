@@ -115,7 +115,7 @@ def _http_fallback_order_cancelled(order_id: int, items: list) -> bool:
     return success
 
 
-def publish_order_placed_event(order_id: int, user_id: int, items: list) -> bool:
+def publish_order_placed_event(order_id: int, user_id: int, items: list, total_amount: float = 0.0) -> bool:
     """
     Sends an OrderPlacedEvent JSON message to the configured SQS queue.
     If SQS is missing or fails, triggers HTTP fallback logic.
@@ -127,6 +127,8 @@ def publish_order_placed_event(order_id: int, user_id: int, items: list) -> bool
         "event_type": "OrderPlaced",
         "order_id": order_id,
         "user_id": user_id,
+        "total": float(total_amount),
+        "total_amount": float(total_amount),
         "items": items,
     })
 
