@@ -134,6 +134,7 @@
       </nav>
       <div class="topbar-actions">
         <span id="session-display" style="font-size:var(--text-xs);color:var(--color-slate-400);"></span>
+        <button class="btn btn-secondary btn-sm" id="btn-signout" onclick="session.logout()" style="display:none;">Sign Out</button>
         <a href="checkout.html" class="btn btn-primary btn-sm">+ New Order</a>
       </div>
     </div>
@@ -150,9 +151,12 @@
             <h1>Product Catalogue</h1>
             <p>Browse available B2B products. Click <strong>Add to Order</strong> to proceed to checkout.</p>
           </div>
-          <div>
-            <span class="service-dot checking" id="dot-product"></span>
-            <span style="font-size:var(--text-xs);color:var(--color-slate-400);">Product Service :8002</span>
+          <div style="display:flex; align-items:center; gap:var(--sp-4);">
+            <button class="btn btn-danger btn-sm" id="btn-delete-account-catalog" onclick="deleteMyAccount()" style="display:none;" title="Delete your customer account">Delete Account</button>
+            <div>
+              <span class="service-dot checking" id="dot-product"></span>
+              <span style="font-size:var(--text-xs);color:var(--color-slate-400);">Product Service :8002</span>
+            </div>
           </div>
         </div>
       </div>
@@ -269,7 +273,13 @@
       if (addProductBtn) addProductBtn.style.display = 'none';
     }
     const user = session.load();
-    if (user) document.getElementById('session-display').textContent = `${user.email} (${user.role})`;
+    if (user) {
+      document.getElementById('session-display').textContent = `${user.email} (${user.role})`;
+      if (user.role !== 'admin' && user.user_id !== 1) {
+        const delBtn = document.getElementById('btn-delete-account-catalog');
+        if (delBtn) delBtn.style.display = 'inline-flex';
+      }
+    }
 
     // ── Service health ─────────────────────────────────────────────────────
     checkServiceHealth(API.PRODUCT, 'dot-product');

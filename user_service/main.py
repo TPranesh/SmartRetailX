@@ -222,8 +222,19 @@ def update_user(user_id: int, payload: UserUpdate, db: Session = Depends(get_db)
 )
 def delete_user(user_id: int, db: Session = Depends(get_db)):
     """Permanently deletes a user account."""
+    if user_id == 1:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Primary Admin account cannot be deleted.",
+        )
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail=f"User {user_id} not found.")
+    if user.id == 1 or user.role == "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Primary Admin account cannot be deleted.",
+        )
     db.delete(user)
     db.commit()
+

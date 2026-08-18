@@ -17,6 +17,13 @@ class InventoryItemCreate(BaseModel):
     warehouse_location: Optional[str] = Field(default=None, examples=["Warehouse A - Shelf 3"])
 
 
+class UpdateStockSchema(BaseModel):
+    stock_quantity: Optional[int] = Field(default=None, ge=0, examples=[100])
+    warehouse_location: Optional[str] = Field(default=None, examples=["Warehouse A"])
+    product_name: Optional[str] = Field(default=None, examples=["Enterprise SSD 2TB"])
+
+
+
 class StockDeductItem(BaseModel):
     product_id: int = Field(..., examples=[1])
     quantity: int = Field(..., gt=0, examples=[5])

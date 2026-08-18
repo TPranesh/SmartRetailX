@@ -195,6 +195,9 @@
         <div>
           <a href="catalog.html" class="btn btn-primary">+ New Order</a>
         </div>
+        <div>
+          <button class="btn btn-danger" id="btn-delete-account-orders" onclick="deleteMyAccount()" style="display:none;" title="Delete your customer account">Delete My Account</button>
+        </div>
       </div>
 
       <!-- Orders List Container -->
@@ -230,6 +233,10 @@
       document.getElementById('session-display').textContent = `${user.email} (${user.role})`;
       const signoutBtn = document.getElementById('btn-signout');
       if (signoutBtn) signoutBtn.style.display = 'inline-flex';
+      if (user.role !== 'admin' && user.user_id !== 1) {
+        const delBtn = document.getElementById('btn-delete-account-orders');
+        if (delBtn) delBtn.style.display = 'inline-flex';
+      }
     }
 
     // Service health check

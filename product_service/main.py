@@ -170,6 +170,12 @@ def get_product(product_id: int, db: Session = Depends(get_db)):
     tags=["Products"],
     summary="Update a product",
 )
+@app.patch(
+    "/products/{product_id}",
+    response_model=ProductResponse,
+    tags=["Products"],
+    summary="Partially update a product",
+)
 def update_product(product_id: int, payload: ProductUpdate, db: Session = Depends(get_db)):
     """Partially updates product fields. Only provided fields are changed."""
     product = db.query(Product).filter(Product.id == product_id).first()

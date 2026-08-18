@@ -25,6 +25,7 @@ from inventory_service.schemas import (
     StockDeductRequest,
     StockDeductResponse,
     OrderPlacedEvent,
+    UpdateStockSchema,
 )
 from inventory_service.sqs_consumer import start_consumer_thread
 
@@ -167,6 +168,41 @@ def restock_item(product_id: int, quantity: int = Query(..., gt=0), db: Session 
         db.add(item)
     else:
         item.stock_quantity += quantity
+    db.commit()
+    db.refresh(item)
+    return item
+
+
+@app.patch(
+    "/inventory/{product_id}",
+    response_model=InventoryItemResponse,
+    tags=["Inventory"],
+    summary="Directly update stock level and inventory details",
+)
+@app.put(
+    "/inventory/{product_id}",
+    response_model=InventoryItemResponse,
+    tags=["Inventory"],
+    summary="Directly update stock level and inventory details",
+)
+def update_stock(product_id: int, payload: UpdateStockSchema, db: Session = Depends(get_db)):
+    """Overwrites stock quantity directly or updates warehouse location."""
+    item = db.query(InventoryItem).filter(InventoryItem.product_id == product_id).first()
+    if not item:
+        item = InventoryItem(
+            product_id=product_id,
+            product_name=payload.product_name or f"Product #{product_id}",
+            stock_quantity=payload.stock_quantity if payload.stock_quantity is not None else 0,
+            warehouse_location=payload.warehouse_location or "Warehouse A",
+        )
+        db.add(item)
+    else:
+        if payload.stock_quantity is not None:
+            item.stock_quantity = max(0, payload.stock_quantity)
+        if payload.warehouse_location is not None:
+            item.warehouse_location = payload.warehouse_location
+        if payload.product_name is not None:
+            item.product_name = payload.product_name
     db.commit()
     db.refresh(item)
     return item

@@ -221,7 +221,7 @@ async function fetchMyOrders() {
   return orders;
 }
 
-// ── Restock Product Helper ───────────────────────────────────────────────────
+// ── Restock & Inventory Helpers ──────────────────────────────────────────────
 /**
  * Restocks a product in the Inventory Service (creates inventory record if not found).
  */
@@ -231,15 +231,87 @@ async function restockProduct(productId, quantity) {
   });
 }
 
-// ── RBAC: Hide Admin Nav Link for Non-Admin Users ────────────────────────────
 /**
- * Reads the stored role and removes the Admin navigation link
- * if the current user is not an admin.
+ * Updates stock quantity directly (exact level overwrite) or warehouse location.
+ */
+async function updateInventoryStock(productId, stockQuantity, warehouseLocation = null) {
+  const body = {};
+  if (stockQuantity !== undefined && stockQuantity !== null) body.stock_quantity = parseInt(stockQuantity, 10);
+  if (warehouseLocation) body.warehouse_location = warehouseLocation;
+  return await apiFetch(`${API.INVENTORY}/inventory/${productId}`, {
+    method: 'PATCH',
+    body,
+  });
+}
+
+// ── Product Helpers ────────────────────────────────────────────────────────────
+/**
+ * Updates an existing product's details in Product Service (PUT /products/{product_id}).
+ */
+async function updateProduct(productId, productData) {
+  return await apiFetch(`${API.PRODUCT}/products/${productId}`, {
+    method: 'PUT',
+    body: productData,
+  });
+}
+
+// ── Account Self-Deletion Helper ─────────────────────────────────────────────
+/**
+ * Deletes the currently authenticated customer's account (DELETE /users/{user_id}).
+ */
+async function deleteMyAccount() {
+  const user = session.getUser();
+  if (!user || !user.user_id) {
+    showToast('No active user session found.', 'error');
+    return;
+  }
+  if (user.role === 'admin' || user.user_id === 1) {
+    showToast('Primary Admin account cannot be deleted.', 'error');
+    return;
+  }
+  if (!confirm('Are you sure you want to permanently delete your account? This action cannot be undone.')) {
+    return;
+  }
+  try {
+    await apiFetch(`${API.USER}/users/${user.user_id}`, { method: 'DELETE' });
+    alert('Your account has been deleted successfully.');
+    session.clear();
+    window.location.href = 'index.html';
+  } catch (err) {
+    showToast('Account deletion failed: ' + err.message, 'error');
+  }
+}
+
+// ── RBAC & Global Nav Sync ───────────────────────────────────────────────────
+/**
+ * Reads session data and syncs navigation links, session badge, and Sign Out button across pages.
  * Call this on every page's DOMContentLoaded or script init.
  */
 function applyRbacNav() {
+  const user = session.getUser();
+  const isLoggedIn = session.isLoggedIn();
+
+  // Handle Sign In link in topbar
+  document.querySelectorAll('.topbar-nav a').forEach(link => {
+    if (link.getAttribute('href') === 'index.html') {
+      link.style.display = isLoggedIn ? 'none' : 'inline-block';
+    }
+  });
+
+  // Display Sign Out button if user is logged in
+  const signoutBtn = document.getElementById('btn-signout');
+  if (signoutBtn) {
+    signoutBtn.style.display = isLoggedIn ? 'inline-flex' : 'none';
+  }
+
+  // Display active session display badge
+  const sessionDisplay = document.getElementById('session-display');
+  if (sessionDisplay && user) {
+    sessionDisplay.textContent = `${user.email} (${user.role})`;
+  }
+
+  // Hide all nav links pointing to admin.html for non-admin users
   if (!session.isAdmin()) {
-    // Hide all nav links pointing to admin.html
     document.querySelectorAll('a[href="admin.html"]').forEach(link => {
       link.style.display = 'none';
     });

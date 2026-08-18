@@ -106,8 +106,11 @@
           <div class="sidebar-item active" id="nav-orders" onclick="showPanel('orders')">
             📋 &nbsp; All Orders
           </div>
+          <div class="sidebar-item" id="nav-products" onclick="showPanel('products')">
+            🏷️ &nbsp; Product Catalogue
+          </div>
           <div class="sidebar-item" id="nav-inventory" onclick="showPanel('inventory')">
-            📦 &nbsp; Inventory
+            📦 &nbsp; Inventory & Warehouse
           </div>
           <div class="sidebar-section-label">Users</div>
           <div class="sidebar-item" id="nav-users" onclick="showPanel('users')">
@@ -170,14 +173,43 @@
             </div>
           </div>
 
+          <!-- ── Products Panel ───────────────────────────────────────────── -->
+          <div class="panel" id="panel-products">
+            <div class="card">
+              <div class="card-header">
+                <span class="card-title">Product Catalogue Management</span>
+                <div style="display:flex;gap:var(--sp-3);">
+                  <button class="btn btn-secondary btn-sm" onclick="loadProductsAdmin()">⟳ Refresh</button>
+                  <button class="btn btn-primary btn-sm" onclick="openAddProductModal()">+ Add Product</button>
+                </div>
+              </div>
+              <div class="table-wrapper">
+                <table class="table">
+                  <thead>
+                    <tr>
+                      <th>ID</th>
+                      <th>Product Name</th>
+                      <th>Category</th>
+                      <th>Price</th>
+                      <th>SKU</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="products-tbody">
+                    <tr class="loading-row"><td colspan="6">Loading products…</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
           <!-- ── Inventory Panel ───────────────────────────────────────────── -->
           <div class="panel" id="panel-inventory">
             <div class="card">
               <div class="card-header">
-                <span class="card-title">Inventory Stock Levels</span>
+                <span class="card-title">Inventory & Warehouse Management</span>
                 <div style="display:flex;gap:var(--sp-3);">
                   <button class="btn btn-secondary btn-sm" onclick="loadInventory()">⟳ Refresh</button>
-                  <button class="btn btn-primary btn-sm" onclick="openAddInventoryModal()">+ Add Item</button>
                 </div>
               </div>
               <div class="table-wrapper">
@@ -186,8 +218,8 @@
                     <tr>
                       <th>Product ID</th>
                       <th>Product Name</th>
-                      <th>Stock Level</th>
-                      <th>Location</th>
+                      <th>Warehouse Location</th>
+                      <th>Current Stock</th>
                       <th>Actions</th>
                     </tr>
                   </thead>
@@ -260,41 +292,116 @@
     </div>
   </div>
 
-  <!-- Restock Modal -->
-  <div class="modal-overlay" id="modal-restock">
+  <!-- Edit Product Modal -->
+  <div class="modal-overlay" id="modal-edit-product">
     <div class="modal">
       <div class="modal-header">
-        <span class="modal-title">Restock Product</span>
-        <button class="modal-close" onclick="closeModal('modal-restock')">&times;</button>
+        <span class="modal-title">Edit Product Details</span>
+        <button class="modal-close" onclick="closeModal('modal-edit-product')">&times;</button>
       </div>
       <div class="modal-body">
-        <p class="text-muted text-sm mb-4">Product <strong id="restock-product-id"></strong></p>
-        <div class="form-group">
-          <label class="form-label" for="restock-qty">Quantity to Add <span class="required">*</span></label>
-          <input class="form-control" type="number" id="restock-qty" min="1" value="10" />
-        </div>
-        <div id="restock-error" class="alert alert-danger" style="display:none;"></div>
+        <form id="form-edit-product" novalidate>
+          <input type="hidden" id="edit-p-id" />
+          <div class="form-group mb-4">
+            <label class="form-label" for="edit-p-name">Product Name <span class="required">*</span></label>
+            <input class="form-control" type="text" id="edit-p-name" required />
+          </div>
+          <div class="form-row mb-4">
+            <div class="form-group">
+              <label class="form-label" for="edit-p-price">Unit Price (£) <span class="required">*</span></label>
+              <input class="form-control" type="number" id="edit-p-price" step="0.01" min="0.01" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="edit-p-category">Category</label>
+              <select class="form-control" id="edit-p-category">
+                <option value="">Select…</option>
+                <option>Storage</option>
+                <option>Networking</option>
+                <option>Servers</option>
+                <option>Power</option>
+                <option>Compute</option>
+                <option>Security</option>
+                <option>Software</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group mb-4">
+            <label class="form-label" for="edit-p-sku">SKU</label>
+            <input class="form-control" type="text" id="edit-p-sku" />
+          </div>
+          <div class="form-group mb-4">
+            <label class="form-label" for="edit-p-desc">Description</label>
+            <textarea class="form-control" id="edit-p-desc" rows="3"></textarea>
+          </div>
+          <div id="edit-product-error" class="alert alert-danger" style="display:none;"></div>
+        </form>
       </div>
       <div class="modal-footer">
-        <button class="btn btn-secondary" onclick="closeModal('modal-restock')">Cancel</button>
-        <button class="btn btn-primary" onclick="submitRestock()">Confirm Restock</button>
+        <button class="btn btn-secondary" onclick="closeModal('modal-edit-product')">Cancel</button>
+        <button class="btn btn-primary" id="btn-save-edit-product" onclick="submitEditProduct()">Save Changes</button>
       </div>
     </div>
   </div>
 
-  <!-- Add Inventory Modal -->
-  <div class="modal-overlay" id="modal-add-inventory">
+  <!-- Stock Level Adjustment Modal -->
+  <div class="modal-overlay" id="modal-restock">
     <div class="modal">
       <div class="modal-header">
-        <span class="modal-title">Add New Product & Inventory Record</span>
-        <button class="modal-close" onclick="closeModal('modal-add-inventory')">&times;</button>
+        <span class="modal-title">Inventory & Stock Adjustment</span>
+        <button class="modal-close" onclick="closeModal('modal-restock')">&times;</button>
       </div>
       <div class="modal-body">
-        <div class="form-group">
+        <p class="text-muted text-sm mb-4">Product <strong id="restock-product-id"></strong> &mdash; <span id="restock-product-name"></span></p>
+        
+        <div class="form-group mb-4">
+          <label class="form-label">Adjustment Mode</label>
+          <div style="display:flex; gap:1rem; margin-top:0.25rem;">
+            <label style="display:inline-flex; align-items:center; gap:0.5rem; font-size:var(--text-sm); cursor:pointer;">
+              <input type="radio" name="stock-mode" value="exact" checked onchange="toggleStockMode()" /> Set Exact Stock Level
+            </label>
+            <label style="display:inline-flex; align-items:center; gap:0.5rem; font-size:var(--text-sm); cursor:pointer;">
+              <input type="radio" name="stock-mode" value="relative" onchange="toggleStockMode()" /> Restock (+ / -) Quantity
+            </label>
+          </div>
+        </div>
+
+        <div class="form-group mb-4">
+          <label class="form-label" id="stock-val-label" for="restock-qty">Exact Stock Count <span class="required">*</span></label>
+          <input class="form-control" type="number" id="restock-qty" min="0" value="10" />
+          <span class="form-hint" id="stock-val-hint">Directly overwrites current stock to this number.</span>
+        </div>
+
+        <div class="form-group mb-4">
+          <label class="form-label" for="restock-location">Warehouse Location</label>
+          <select class="form-control" id="restock-location">
+            <option value="Warehouse A - Main Hub">Warehouse A - Main Hub</option>
+            <option value="Warehouse B - North Facility">Warehouse B - North Facility</option>
+            <option value="Warehouse C - West Logistics">Warehouse C - West Logistics</option>
+          </select>
+        </div>
+
+        <div id="restock-error" class="alert alert-danger" style="display:none;"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('modal-restock')">Cancel</button>
+        <button class="btn btn-primary" onclick="submitRestock()">Save Stock Level</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Product Modal -->
+  <div class="modal-overlay" id="modal-add-product">
+    <div class="modal">
+      <div class="modal-header">
+        <span class="modal-title">Add New Catalogue Product</span>
+        <button class="modal-close" onclick="closeModal('modal-add-product')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group mb-4">
           <label class="form-label" for="inv-product-name">Product Name <span class="required">*</span></label>
           <input class="form-control" type="text" id="inv-product-name" placeholder="Enterprise SSD 2TB" required />
         </div>
-        <div class="form-row">
+        <div class="form-row mb-4">
           <div class="form-group">
             <label class="form-label" for="inv-category">Category</label>
             <select class="form-control" id="inv-category">
@@ -312,7 +419,7 @@
             <input class="form-control" type="number" id="inv-price" step="0.01" min="0.01" placeholder="299.99" required />
           </div>
         </div>
-        <div class="form-row">
+        <div class="form-row mb-4">
           <div class="form-group">
             <label class="form-label" for="inv-qty">Initial Quantity <span class="required">*</span></label>
             <input class="form-control" type="number" id="inv-qty" min="0" value="10" required />
@@ -326,14 +433,14 @@
             </select>
           </div>
         </div>
-        <div class="form-group">
+        <div class="form-group mb-4">
           <label class="form-label" for="inv-desc">Description</label>
           <textarea class="form-control" id="inv-desc" rows="2" placeholder="High-performance hardware specs..."></textarea>
         </div>
         <div id="add-inv-error" class="alert alert-danger" style="display:none;"></div>
       </div>
       <div class="modal-footer">
-        <button class="btn btn-secondary" onclick="closeModal('modal-add-inventory')">Cancel</button>
+        <button class="btn btn-secondary" onclick="closeModal('modal-add-product')">Cancel</button>
         <button class="btn btn-primary" onclick="submitAddInventory()">Create & Save</button>
       </div>
     </div>
@@ -379,9 +486,12 @@
     function showPanel(name) {
       document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
       document.querySelectorAll('.sidebar-item').forEach(i => i.classList.remove('active'));
-      document.getElementById(`panel-${name}`).classList.add('active');
-      document.getElementById(`nav-${name}`).classList.add('active');
+      const targetPanel = document.getElementById(`panel-${name}`);
+      const targetNav = document.getElementById(`nav-${name}`);
+      if (targetPanel) targetPanel.classList.add('active');
+      if (targetNav) targetNav.classList.add('active');
       if (name === 'orders')    loadOrders();
+      if (name === 'products')  loadProductsAdmin();
       if (name === 'inventory') loadInventory();
       if (name === 'users')     loadUsers();
     }
@@ -458,8 +568,100 @@
       }
     }
 
-    // ── Load Inventory ─────────────────────────────────────────────────────────
+    // ── Product Catalogue Management ───────────────────────────────────────────
+    let currentEditProduct = null;
+
+    async function loadProductsAdmin() {
+      const tbody = document.getElementById('products-tbody');
+      tbody.innerHTML = '<tr class="loading-row"><td colspan="6">Loading products…</td></tr>';
+      try {
+        const products = await apiFetch(`${API.PRODUCT}/products?limit=200`);
+        if (!Array.isArray(products) || products.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="6" style="padding:var(--sp-8);text-align:center;color:var(--color-slate-400);">No products found. Add one using the button above.</td></tr>`;
+          return;
+        }
+
+        tbody.innerHTML = products.map(p => `
+          <tr id="prod-row-${p.id}">
+            <td><code class="text-mono" style="font-size:var(--text-xs);">#${p.id}</code></td>
+            <td><strong>${escHtml(p.name)}</strong></td>
+            <td>${escHtml(p.category || 'Uncategorised')}</td>
+            <td>${formatCurrency(p.price)}</td>
+            <td><code class="text-mono" style="font-size:var(--text-xs);">${escHtml(p.sku || '—')}</code></td>
+            <td>
+              <div class="table-actions">
+                <button class="btn btn-secondary btn-sm" onclick='openEditProductModal(${JSON.stringify(p).replace(/'/g, "&apos;")})'>Edit Product</button>
+                <button class="btn btn-danger btn-sm" onclick="deleteProduct(${p.id}, event)">Delete</button>
+              </div>
+            </td>
+          </tr>
+        `).join('');
+      } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="6" style="padding:var(--sp-6);color:var(--color-danger);text-align:center;">${escHtml(err.message)}</td></tr>`;
+      }
+    }
+
+    function openAddProductModal() {
+      document.getElementById('add-inv-error').style.display = 'none';
+      document.getElementById('modal-add-product').classList.add('open');
+    }
+
+    function openEditProductModal(p) {
+      currentEditProduct = p;
+      document.getElementById('edit-p-id').value = p.id;
+      document.getElementById('edit-p-name').value = p.name || '';
+      document.getElementById('edit-p-price').value = p.price || '';
+      document.getElementById('edit-p-category').value = p.category || '';
+      document.getElementById('edit-p-sku').value = p.sku || '';
+      document.getElementById('edit-p-desc').value = p.description || '';
+      document.getElementById('edit-product-error').style.display = 'none';
+      document.getElementById('modal-edit-product').classList.add('open');
+    }
+
+    async function submitEditProduct() {
+      const errEl = document.getElementById('edit-product-error');
+      errEl.style.display = 'none';
+      const productId = document.getElementById('edit-p-id').value;
+      const name = document.getElementById('edit-p-name').value.trim();
+      const price = parseFloat(document.getElementById('edit-p-price').value);
+      const category = document.getElementById('edit-p-category').value;
+      const sku = document.getElementById('edit-p-sku').value.trim();
+      const description = document.getElementById('edit-p-desc').value.trim();
+
+      if (!name || isNaN(price)) {
+        errEl.textContent = 'Product Name and Unit Price are required.';
+        errEl.style.display = 'flex';
+        return;
+      }
+
+      const btn = document.getElementById('btn-save-edit-product');
+      btn.disabled = true;
+      btn.textContent = 'Saving…';
+
+      try {
+        await updateProduct(productId, {
+          name,
+          price,
+          category: category || null,
+          sku: sku || null,
+          description: description || null,
+        });
+        closeModal('modal-edit-product');
+        showToast(`Product #${productId} updated successfully.`, 'success');
+        loadProductsAdmin();
+        loadInventory();
+      } catch (err) {
+        errEl.textContent = err.message;
+        errEl.style.display = 'flex';
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Save Changes';
+      }
+    }
+
+    // ── Inventory & Warehouse Management ───────────────────────────────────────
     let restockProductId = null;
+    let restockCurrentStock = 0;
 
     async function loadInventory() {
       const tbody = document.getElementById('inventory-tbody');
@@ -487,8 +689,7 @@
             product_id: p.id,
             product_name: p.name,
             stock_quantity: inv ? inv.stock_quantity : (typeof p.stock_level === 'number' ? p.stock_level : 0),
-            warehouse_location: inv ? inv.warehouse_location : 'Unlinked',
-            is_unlinked: !inv,
+            warehouse_location: inv ? (inv.warehouse_location || 'Warehouse A - Main Hub') : 'Warehouse A - Main Hub',
           });
         });
 
@@ -499,8 +700,7 @@
               product_id: inv.product_id,
               product_name: inv.product_name || `Product #${inv.product_id}`,
               stock_quantity: inv.stock_quantity,
-              warehouse_location: inv.warehouse_location || 'Warehouse A',
-              is_unlinked: false,
+              warehouse_location: inv.warehouse_location || 'Warehouse A - Main Hub',
             });
           }
         });
@@ -509,7 +709,7 @@
         document.getElementById('stat-inv').textContent = items.length;
 
         if (items.length === 0) {
-          tbody.innerHTML = `<tr><td colspan="5" style="padding:var(--sp-8);text-align:center;color:var(--color-slate-400);">No products or inventory records found.</td></tr>`;
+          tbody.innerHTML = `<tr><td colspan="5" style="padding:var(--sp-8);text-align:center;color:var(--color-slate-400);">No inventory records found.</td></tr>`;
           return;
         }
 
@@ -518,9 +718,7 @@
         tbody.innerHTML = items.map(item => {
           const pct = Math.min(100, Math.round((item.stock_quantity / maxQty) * 100));
           const barClass = item.stock_quantity === 0 ? 'out' : item.stock_quantity < 10 ? 'low' : '';
-          const stockBadge = item.is_unlinked
-            ? `<span class="badge badge-warning" title="No matching record in Inventory Service">Unlinked (0)</span>`
-            : item.stock_quantity === 0
+          const stockBadge = item.stock_quantity === 0
             ? `<span class="badge badge-danger">Out of stock</span>`
             : item.stock_quantity < 10
             ? `<span class="badge badge-warning">Low</span>`
@@ -530,6 +728,7 @@
             <tr id="inv-row-${item.product_id}">
               <td><code class="text-mono" style="font-size:var(--text-xs);">#${item.product_id}</code></td>
               <td>${escHtml(item.product_name)}</td>
+              <td>${escHtml(item.warehouse_location)}</td>
               <td>
                 <div class="stock-bar-wrapper">
                   <div class="stock-bar-track">
@@ -539,11 +738,9 @@
                   ${stockBadge}
                 </div>
               </td>
-              <td>${escHtml(item.warehouse_location || '—')}</td>
               <td>
                 <div class="table-actions">
-                  <button class="btn btn-secondary btn-sm" onclick="openRestockModal(${item.product_id})">Restock</button>
-                  <button class="btn btn-danger btn-sm" onclick="deleteProduct(${item.product_id}, event)">Delete</button>
+                  <button class="btn btn-secondary btn-sm" onclick="openRestockModal(${item.product_id}, '${escHtml(item.product_name)}', ${item.stock_quantity}, '${escHtml(item.warehouse_location)}')">Adjust Stock</button>
                 </div>
               </td>
             </tr>`;
@@ -553,33 +750,72 @@
       }
     }
 
-    function openRestockModal(productId) {
+    function toggleStockMode() {
+      const mode = document.querySelector('input[name="stock-mode"]:checked').value;
+      const label = document.getElementById('stock-val-label');
+      const hint = document.getElementById('stock-val-hint');
+      const qtyInput = document.getElementById('restock-qty');
+
+      if (mode === 'exact') {
+        label.innerHTML = 'Exact Stock Count <span class="required">*</span>';
+        hint.textContent = 'Directly overwrites current stock to this number.';
+        qtyInput.value = restockCurrentStock;
+      } else {
+        label.innerHTML = 'Quantity to Add (+ / -) <span class="required">*</span>';
+        hint.textContent = 'Adds (or subtracts if negative) this quantity to current stock.';
+        qtyInput.value = 10;
+      }
+    }
+
+    function openRestockModal(productId, productName, currentStock, location) {
       restockProductId = productId;
+      restockCurrentStock = currentStock || 0;
       document.getElementById('restock-product-id').textContent = `#${productId}`;
-      document.getElementById('restock-qty').value = 10;
+      document.getElementById('restock-product-name').textContent = productName || '';
+      document.getElementById('restock-location').value = location || 'Warehouse A - Main Hub';
       document.getElementById('restock-error').style.display = 'none';
+
+      const exactRadio = document.querySelector('input[name="stock-mode"][value="exact"]');
+      if (exactRadio) exactRadio.checked = true;
+      toggleStockMode();
+
       document.getElementById('modal-restock').classList.add('open');
     }
 
     async function submitRestock() {
       const errEl = document.getElementById('restock-error');
       errEl.style.display = 'none';
-      const qty = parseInt(document.getElementById('restock-qty').value, 10);
-      if (!qty || qty < 1) { errEl.textContent = 'Enter a positive quantity.'; errEl.style.display = 'flex'; return; }
+      const mode = document.querySelector('input[name="stock-mode"]:checked').value;
+      const qtyInput = parseInt(document.getElementById('restock-qty').value, 10);
+      const location = document.getElementById('restock-location').value;
+
+      if (isNaN(qtyInput)) {
+        errEl.textContent = 'Enter a valid stock number.';
+        errEl.style.display = 'flex';
+        return;
+      }
+
       try {
-        await restockProduct(restockProductId, qty);
+        if (mode === 'exact') {
+          if (qtyInput < 0) { errEl.textContent = 'Stock level cannot be negative.'; errEl.style.display = 'flex'; return; }
+          await updateInventoryStock(restockProductId, qtyInput, location);
+          showToast(`Stock level for Product #${restockProductId} updated to ${qtyInput}.`, 'success');
+        } else {
+          if (qtyInput === 0) { errEl.textContent = 'Restock quantity must be non-zero.'; errEl.style.display = 'flex'; return; }
+          if (qtyInput > 0) {
+            await restockProduct(restockProductId, qtyInput);
+          } else {
+            const newExact = Math.max(0, restockCurrentStock + qtyInput);
+            await updateInventoryStock(restockProductId, newExact, location);
+          }
+          showToast(`Stock for Product #${restockProductId} adjusted.`, 'success');
+        }
         closeModal('modal-restock');
-        showToast(`Product #${restockProductId} restocked by ${qty} units.`, 'success');
         loadInventory();
       } catch (err) {
         errEl.textContent = err.message;
         errEl.style.display = 'flex';
       }
-    }
-
-    function openAddInventoryModal() {
-      document.getElementById('add-inv-error').style.display = 'none';
-      document.getElementById('modal-add-inventory').classList.add('open');
     }
 
     async function submitAddInventory() {
@@ -626,9 +862,12 @@
           /* inventory record created or handled */
         }
 
-        closeModal('modal-add-inventory');
-        showToast(`Product "${productName}" and inventory record created successfully!`, 'success');
-        await loadInventory();
+        closeModal('modal-add-product');
+        showToast(`Product "${productName}" created successfully!`, 'success');
+        if (document.getElementById('panel-products').classList.contains('active')) {
+          loadProductsAdmin();
+        }
+        loadInventory();
         loadStats();
       } catch (err) {
         errEl.textContent = err.message;
@@ -639,9 +878,8 @@
     async function deleteProduct(productId, event) {
       if (!confirm(`Are you sure you want to delete product #${productId}? This action cannot be undone.`)) return;
 
-      // Locate target row from event target or DOM ID
       const row = (event && event.target) ? event.target.closest('tr') : document.getElementById(`inv-row-${productId}`);
-      const matchingRows = document.querySelectorAll(`tr#inv-row-${productId}`);
+      const matchingRows = document.querySelectorAll(`tr#inv-row-${productId}, tr#prod-row-${productId}`);
 
       let isSuccess = false;
       let is404 = false;
@@ -666,7 +904,6 @@
         if (invRes.status === 404) is404 = true;
       } catch (_) {}
 
-      // FORCE DOM REMOVAL on 200/204 (ok) OR 404 (not found)
       if (row) row.remove();
       matchingRows.forEach(r => r.remove());
 
@@ -676,12 +913,12 @@
         showToast(`Product #${productId} deleted successfully.`, 'success');
       }
 
-      // Force complete table re-fetch and re-render to ensure UI is 100% in sync
-      await loadInventory();
+      loadProductsAdmin();
+      loadInventory();
       loadStats();
     }
 
-    // ── Load Users ─────────────────────────────────────────────────────────────
+    // ── Load Users & Primary Admin Protection ──────────────────────────────────
     async function loadUsers() {
       const tbody = document.getElementById('users-tbody');
       tbody.innerHTML = '<tr class="loading-row"><td colspan="7">Loading…</td></tr>';
@@ -695,27 +932,38 @@
           return;
         }
 
-        tbody.innerHTML = users.map(u => `
-          <tr>
-            <td>${u.id}</td>
-            <td>${escHtml(u.full_name)}</td>
-            <td>${escHtml(u.email)}</td>
-            <td>${statusBadge(u.role)}</td>
-            <td>${escHtml(u.company || '—')}</td>
-            <td>${formatDate(u.created_at)}</td>
-            <td>
-              <div class="table-actions">
-                <button class="btn btn-danger btn-sm" onclick="deleteUser(${u.id})">Delete</button>
-              </div>
-            </td>
-          </tr>
-        `).join('');
+        tbody.innerHTML = users.map(u => {
+          const isProtected = (u.id === 1 || u.role === 'admin');
+          const actionButton = isProtected
+            ? `<span class="badge badge-neutral" style="opacity:0.75;" title="Primary Admin account protected">Protected</span>`
+            : `<button class="btn btn-danger btn-sm" onclick="deleteUser(${u.id})">Delete</button>`;
+
+          return `
+            <tr>
+              <td>${u.id}</td>
+              <td>${escHtml(u.full_name)}</td>
+              <td>${escHtml(u.email)}</td>
+              <td>${statusBadge(u.role)}</td>
+              <td>${escHtml(u.company || '—')}</td>
+              <td>${formatDate(u.created_at)}</td>
+              <td>
+                <div class="table-actions">
+                  ${actionButton}
+                </div>
+              </td>
+            </tr>
+          `;
+        }).join('');
       } catch (err) {
         tbody.innerHTML = `<tr><td colspan="7" style="padding:var(--sp-6);color:var(--color-danger);text-align:center;">${escHtml(err.message)}</td></tr>`;
       }
     }
 
     async function deleteUser(userId) {
+      if (userId === 1) {
+        showToast('Primary Admin account cannot be deleted.', 'error');
+        return;
+      }
       if (!confirm(`Permanently delete user #${userId}?`)) return;
       try {
         await apiFetch(`${API.USER}/users/${userId}`, { method: 'DELETE' });
