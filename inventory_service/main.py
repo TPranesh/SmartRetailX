@@ -213,6 +213,7 @@ def deduct_stock(payload: StockDeductRequest, db: Session = Depends(get_db)):
             db.refresh(inv_item)
 
         inv_item.stock_quantity = max(0, inv_item.stock_quantity - qty)
+        db.add(inv_item)
         db.commit()
         db.refresh(inv_item)
 
@@ -221,6 +222,8 @@ def deduct_stock(payload: StockDeductRequest, db: Session = Depends(get_db)):
             "deducted": qty,
             "remaining_stock": inv_item.stock_quantity,
         })
+
+    db.commit()
 
     first_pid = results[0]["product_id"] if results else (payload.product_id or 0)
     first_qty = results[0]["deducted"] if results else (payload.quantity or 0)

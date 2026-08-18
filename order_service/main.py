@@ -115,14 +115,20 @@ def create_order(
 
     user_email = getattr(current_user, "email", f"user{order.user_id}@smartretailx.com")
 
+    # Extract items directly from Pydantic request payload (NOT expired SQLAlchemy relationship order.items)
+    deduct_items = [
+        {"product_id": int(item.product_id), "quantity": int(item.quantity)}
+        for item in payload.items
+    ]
+
     items_payload = [
         {
-            "product_id": i.product_id,
-            "product_name": i.product_name,
-            "quantity": i.quantity,
-            "unit_price": i.unit_price,
+            "product_id": int(item.product_id),
+            "product_name": getattr(item, "product_name", f"Product #{item.product_id}"),
+            "quantity": int(item.quantity),
+            "unit_price": float(getattr(item, "unit_price", getattr(item, "price", 0.0))),
         }
-        for i in order.items
+        for item in payload.items
     ]
 
     # 1. Publish to SQS (for Lambda notifications)
@@ -162,22 +168,20 @@ def create_order(
         except Exception:
             pass
 
-    # 2. Immediate Local Inventory Deduction via HTTP to guarantee zero-loss stock sync
-    deduct_items = [
-        {"product_id": int(i.product_id), "quantity": int(i.quantity)}
-        for i in order.items
-    ]
-
+    # 2. Fortified Internal Network Call for Immediate Inventory Deduction
     try:
         deduct_url = f"{inventory_service_url.rstrip('/')}/inventory/deduct"
-        res = requests.post(deduct_url, json={"items": deduct_items}, timeout=4)
-        logger.info("[INVENTORY DEDUCT] Status: %s, Response: %s", res.status_code, res.text)
-    except Exception:
+        res = requests.post(deduct_url, json={"items": deduct_items}, timeout=5)
+        res.raise_for_status()
+        logger.info("[INVENTORY DEDUCT SUCCESS] Status: %s, Response: %s", res.status_code, res.text)
+    except requests.exceptions.RequestException as e:
+        logger.warning("[ERROR] Docker network failed, attempting localhost fallback: %s", e)
         try:
-            res = requests.post("http://localhost:8004/inventory/deduct", json={"items": deduct_items}, timeout=3)
-            logger.info("[INVENTORY DEDUCT] Status: %s, Response: %s", res.status_code, res.text)
-        except Exception as http_err:
-            logger.warning("[INVENTORY DEDUCT ERROR] Local HTTP inventory deduct failed for order #%d: %s", order.id, http_err)
+            res = requests.post("http://localhost:8004/inventory/deduct", json={"items": deduct_items}, timeout=5)
+            res.raise_for_status()
+            logger.info("[INVENTORY DEDUCT FALLBACK SUCCESS] Status: %s, Response: %s", res.status_code, res.text)
+        except requests.exceptions.RequestException as fallback_e:
+            logger.error("[CRITICAL ERROR] Inventory deduction completely failed: %s", fallback_e)
 
     return order
 
