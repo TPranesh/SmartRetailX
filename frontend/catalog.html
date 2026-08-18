@@ -307,7 +307,8 @@
         // Fetch live stock levels from Inventory Service (Port 8004 — single source of truth)
         const invMap = await getLiveInventoryMap();
         products.forEach(p => {
-          p.stock_level = invMap.has(p.id) ? invMap.get(p.id) : (p.stock_level || 0);
+          const liveStock = invMap[p.id] ?? invMap[String(p.id)];
+          p.stock_level = liveStock !== undefined ? liveStock : (p.stock_level ?? 0);
         });
 
         grid.innerHTML = products.map(p => `
@@ -346,9 +347,19 @@
     // ── Add to Order (persisted per user session via cartManager) ──────────────
     function addToOrder(id, name, price) {
       const cart = cartManager.getCart();
-      const existing = cart.find(i => i.product_id === id);
-      if (existing) { existing.quantity += 1; }
-      else { cart.push({ product_id: id, product_name: name, unit_price: price, quantity: 1 }); }
+      const pid = parseInt(id, 10);
+      const existing = cart.find(i => parseInt(i.product_id || i.id, 10) === pid);
+      if (existing) {
+        existing.quantity = parseInt(existing.quantity, 10) + 1;
+      } else {
+        cart.push({
+          product_id: pid,
+          product_name: String(name),
+          price: parseFloat(price),
+          unit_price: parseFloat(price),
+          quantity: 1,
+        });
+      }
       cartManager.saveCart(cart);
       showToast(`"${name}" added to order.`, 'success');
     }

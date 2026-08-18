@@ -59,22 +59,21 @@ app.add_middleware(
 # ── Seed Data ─────────────────────────────────────────────────────────────────
 
 SEED_INVENTORY = [
-    {"product_id": 1, "product_name": "Enterprise SSD 2TB",        "stock_quantity": 120, "warehouse_location": "Warehouse A - Shelf 1"},
-    {"product_id": 2, "product_name": "Cloud Server Rack Unit",    "stock_quantity": 45,  "warehouse_location": "Warehouse A - Shelf 5"},
-    {"product_id": 3, "product_name": "10GbE Network Switch 48P",  "stock_quantity": 80,  "warehouse_location": "Warehouse B - Shelf 2"},
-    {"product_id": 4, "product_name": "UPS Power Module 10kVA",    "stock_quantity": 30,  "warehouse_location": "Warehouse B - Shelf 7"},
+    {"product_id": 1, "product_name": "Enterprise SSD 2TB",        "stock_quantity": 50, "warehouse_location": "Warehouse A"},
+    {"product_id": 2, "product_name": "Cloud Server Rack Unit",    "stock_quantity": 50, "warehouse_location": "Warehouse A"},
+    {"product_id": 3, "product_name": "10GbE Network Switch 48P",  "stock_quantity": 50, "warehouse_location": "Warehouse B"},
+    {"product_id": 4, "product_name": "UPS Power Module 10kVA",    "stock_quantity": 50, "warehouse_location": "Warehouse B"},
 ]
 
 
 def seed_inventory(db: Session) -> None:
-    """Inserts default inventory records on first startup if the table is empty."""
-    if db.query(InventoryItem).count() == 0:
-        for rec in SEED_INVENTORY:
+    """Inserts default inventory records for product IDs 1 to 4 if missing."""
+    for rec in SEED_INVENTORY:
+        item = db.query(InventoryItem).filter(InventoryItem.product_id == rec["product_id"]).first()
+        if not item:
             db.add(InventoryItem(**rec))
-        db.commit()
-        logger.info("Seeded %d inventory records.", len(SEED_INVENTORY))
-    else:
-        logger.info("Inventory table already populated — skipping seed.")
+            logger.info("Auto-seeded inventory record for product #%d (50 units).", rec["product_id"])
+    db.commit()
 
 
 # ── Startup Events ────────────────────────────────────────────────────────────
@@ -206,7 +205,7 @@ def deduct_stock(payload: StockDeductRequest, db: Session = Depends(get_db)):
             inv_item = InventoryItem(
                 product_id=prod_id,
                 product_name=f"Product #{prod_id}",
-                stock_quantity=0,
+                stock_quantity=50,
                 warehouse_location="Warehouse A",
             )
             db.add(inv_item)

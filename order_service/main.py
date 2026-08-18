@@ -163,16 +163,21 @@ def create_order(
             pass
 
     # 2. Immediate Local Inventory Deduction via HTTP to guarantee zero-loss stock sync
+    deduct_items = [
+        {"product_id": int(i.product_id), "quantity": int(i.quantity)}
+        for i in order.items
+    ]
+
     try:
         deduct_url = f"{inventory_service_url.rstrip('/')}/inventory/deduct"
-        requests.post(deduct_url, json={"items": items_payload}, timeout=4)
-        logger.info("Direct HTTP stock deduction succeeded for order #%d via %s", order.id, deduct_url)
+        res = requests.post(deduct_url, json={"items": deduct_items}, timeout=4)
+        logger.info("[INVENTORY DEDUCT] Status: %s, Response: %s", res.status_code, res.text)
     except Exception:
         try:
-            requests.post("http://localhost:8004/inventory/deduct", json={"items": items_payload}, timeout=3)
-            logger.info("Direct HTTP stock deduction succeeded for order #%d via localhost:8004", order.id)
+            res = requests.post("http://localhost:8004/inventory/deduct", json={"items": deduct_items}, timeout=3)
+            logger.info("[INVENTORY DEDUCT] Status: %s, Response: %s", res.status_code, res.text)
         except Exception as http_err:
-            logger.warning("Local HTTP inventory deduct fallback failed for order #%d: %s", order.id, http_err)
+            logger.warning("[INVENTORY DEDUCT ERROR] Local HTTP inventory deduct failed for order #%d: %s", order.id, http_err)
 
     return order
 

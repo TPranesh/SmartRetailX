@@ -364,10 +364,18 @@
       btn.textContent = 'Submitting…';
 
       try {
+        const formattedItems = cart.map(item => ({
+          product_id: parseInt(item.product_id || item.id, 10),
+          product_name: String(item.product_name || item.name || `Product #${item.product_id}`),
+          quantity: parseInt(item.quantity, 10),
+          price: parseFloat(item.price || item.unit_price || 0),
+          unit_price: parseFloat(item.price || item.unit_price || 0),
+        }));
+
         // POST /orders to Order Service via placeOrder helper
         const order = await placeOrder({
           user_id: session.load()?.user_id || 0,
-          items: cart,
+          items: formattedItems,
           shipping_address: document.getElementById('o-address').value.trim() || null,
         });
 

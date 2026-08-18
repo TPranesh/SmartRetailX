@@ -310,14 +310,21 @@ async function getLiveInventoryStock(productId) {
  */
 async function getLiveInventoryMap() {
   try {
-    const items = await apiFetch(`${API.INVENTORY}/inventory?limit=200`);
-    const map = new Map();
-    if (Array.isArray(items)) {
-      items.forEach(item => map.set(item.product_id, item.stock_quantity));
+    const inventoryList = await apiFetch(`${API.INVENTORY}/inventory?limit=200`);
+    const map = {};
+    if (Array.isArray(inventoryList)) {
+      inventoryList.forEach(item => {
+        const pid = item.product_id || item.id;
+        if (pid !== undefined) {
+          const qty = item.stock_quantity ?? item.stock ?? 0;
+          map[pid] = qty;
+          map[String(pid)] = qty;
+        }
+      });
     }
     return map;
   } catch (_) {
-    return new Map();
+    return {};
   }
 }
 
