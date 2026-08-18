@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Admin Dashboard — SmartRetailX</title>
-  <meta name="description" content="Administrative dashboard for managing orders and inventory on SmartRetailX." />
+  <meta name="description" content="Administrative dashboard for managing orders, product catalogue, inventory, and users on SmartRetailX." />
   <link rel="stylesheet" href="style.css" />
   <style>
     .panel { display: none; }
@@ -63,7 +63,7 @@
       </nav>
       <div class="topbar-actions">
         <span id="session-display" style="font-size:var(--text-xs);color:var(--color-slate-400);"></span>
-        <button class="btn btn-secondary btn-sm" onclick="sessionLogout()">Sign Out</button>
+        <button class="btn btn-secondary btn-sm" id="btn-signout" onclick="sessionLogout()">Sign Out</button>
       </div>
     </div>
   </header>
@@ -74,7 +74,7 @@
       <!-- Page Header -->
       <div class="page-header">
         <h1>Administration Dashboard</h1>
-        <p>Manage orders, inventory, and users across all SmartRetailX microservices.</p>
+        <p>Manage orders, product catalogue, warehouse inventory, and users across all SmartRetailX microservices.</p>
       </div>
 
       <!-- Stats -->
@@ -110,7 +110,7 @@
             🏷️ &nbsp; Product Catalogue
           </div>
           <div class="sidebar-item" id="nav-inventory" onclick="showPanel('inventory')">
-            📦 &nbsp; Inventory & Warehouse
+            📦 &nbsp; Inventory Management
           </div>
           <div class="sidebar-section-label">Users</div>
           <div class="sidebar-item" id="nav-users" onclick="showPanel('users')">
@@ -173,7 +173,7 @@
             </div>
           </div>
 
-          <!-- ── Products Panel ───────────────────────────────────────────── -->
+          <!-- ── Products Panel (Decoupled Product Catalogue) ────────────────── -->
           <div class="panel" id="panel-products">
             <div class="card">
               <div class="card-header">
@@ -203,7 +203,7 @@
             </div>
           </div>
 
-          <!-- ── Inventory Panel ───────────────────────────────────────────── -->
+          <!-- ── Inventory Panel (Decoupled Warehouse Stock) ───────────────── -->
           <div class="panel" id="panel-inventory">
             <div class="card">
               <div class="card-header">
@@ -389,7 +389,7 @@
     </div>
   </div>
 
-  <!-- Add Product Modal -->
+  <!-- Add Product Modal (Product Catalogue Management) -->
   <div class="modal-overlay" id="modal-add-product">
     <div class="modal">
       <div class="modal-header">
