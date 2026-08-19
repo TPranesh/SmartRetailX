@@ -47,49 +47,70 @@ app.add_middleware(
 
 SEED_PRODUCTS = [
     {
-        "name": "Enterprise SSD 2TB",
-        "description": "High-speed NVMe SSD for data centre deployments. Rated for 24/7 enterprise workloads with a 5-year warranty.",
-        "price": 299.99,
-        "stock_level": 120,
+        "name": "ProBook 15-inch Business Laptop",
+        "description": "High-performance 15-inch business laptop with Intel Core i7, 16GB RAM, and 512GB SSD for workplace productivity.",
+        "price": 1200.00,
+        "stock_level": 50,
+        "category": "Compute",
+        "sku": "CMP-LPT-001",
+    },
+    {
+        "name": "Ergo Wireless Mouse",
+        "description": "Ergonomic wireless mouse with multi-device Bluetooth pairing and long-lasting rechargeable battery.",
+        "price": 45.99,
+        "stock_level": 50,
+        "category": "Accessories",
+        "sku": "ACC-MOU-001",
+    },
+    {
+        "name": "Enterprise RTX 4000 Ada GPU",
+        "description": "High-performance enterprise graphics card optimized for AI training, rendering, and complex compute workloads.",
+        "price": 1850.00,
+        "stock_level": 50,
+        "category": "Compute",
+        "sku": "CMP-GPU-001",
+    },
+    {
+        "name": "Enterprise 4TB NVMe SSD",
+        "description": "Ultra-fast enterprise 4TB NVMe SSD for heavy data storage, virtualization, and server workloads.",
+        "price": 299.00,
+        "stock_level": 50,
         "category": "Storage",
-        "sku": "SSD-2TB-ENT-001",
+        "sku": "STG-SSD-001",
     },
     {
-        "name": "Cloud Server Rack Unit",
-        "description": "1U rack-mounted compute node with dual Xeon processors, 256GB RAM, and redundant power supplies.",
-        "price": 4750.00,
-        "stock_level": 45,
-        "category": "Servers",
-        "sku": "SRV-1U-XEON-002",
-    },
-    {
-        "name": "10GbE Network Switch 48P",
-        "description": "Managed 48-port 10 Gigabit Ethernet switch with 4x 40GbE uplinks. Ideal for top-of-rack deployments.",
-        "price": 1899.50,
-        "stock_level": 80,
+        "name": "24-Port Gigabit Network Switch",
+        "description": "Reliable 24-port Gigabit Ethernet managed switch for office, enterprise, and data center networking.",
+        "price": 350.00,
+        "stock_level": 50,
         "category": "Networking",
-        "sku": "NET-SW-10G-48P-003",
+        "sku": "NET-SW-001",
     },
     {
-        "name": "UPS Power Module 10kVA",
-        "description": "Online double-conversion UPS with 10kVA capacity, 8-minute runtime at full load, and hot-swap batteries.",
-        "price": 3200.00,
-        "stock_level": 30,
-        "category": "Power",
-        "sku": "UPS-10KVA-DC-004",
+        "name": "Next-Gen Hardware Firewall",
+        "description": "Advanced enterprise hardware firewall with deep packet inspection, VPN, and intrusion prevention.",
+        "price": 1500.00,
+        "stock_level": 50,
+        "category": "Security",
+        "sku": "SEC-FW-001",
     },
 ]
 
 
 def seed_products(db: Session) -> None:
-    """Inserts default products on first startup if the catalogue is empty."""
-    if db.query(Product).count() == 0:
-        for rec in SEED_PRODUCTS:
-            db.add(Product(**rec))
-        db.commit()
-        logger.info("Seeded %d products into the catalogue.", len(SEED_PRODUCTS))
-    else:
-        logger.info("Products table already populated — skipping seed.")
+    """Inserts or updates default products for items 1..6."""
+    for idx, rec in enumerate(SEED_PRODUCTS, start=1):
+        p = db.query(Product).filter((Product.id == idx) | (Product.sku == rec["sku"])).first()
+        if p:
+            p.name = rec["name"]
+            p.description = rec["description"]
+            p.price = rec["price"]
+            p.category = rec["category"]
+            p.sku = rec["sku"]
+        else:
+            db.add(Product(id=idx, **rec))
+    db.commit()
+    logger.info("Seeded/updated %d core products in the catalogue.", len(SEED_PRODUCTS))
 
 
 # ── Startup ───────────────────────────────────────────────────────────────────

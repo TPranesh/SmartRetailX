@@ -92,7 +92,7 @@
           <div class="stat-card-value" id="stat-users">—</div>
         </div>
         <div class="stat-card">
-          <div class="stat-card-label">Inventory SKUs</div>
+          <div class="stat-card-label">TOTAL INVENTORY ITEMS</div>
           <div class="stat-card-value" id="stat-inv">—</div>
         </div>
       </div>
@@ -104,17 +104,17 @@
         <nav class="sidebar">
           <div class="sidebar-section-label">Operations</div>
           <div class="sidebar-item active" id="nav-orders" onclick="showPanel('orders')">
-            📋 &nbsp; All Orders
+             &nbsp; All Orders
           </div>
           <div class="sidebar-item" id="nav-products" onclick="showPanel('products')">
-            🏷️ &nbsp; Product Catalogue
+             &nbsp; Product Catalogue
           </div>
           <div class="sidebar-item" id="nav-inventory" onclick="showPanel('inventory')">
-            📦 &nbsp; Inventory Management
+             &nbsp; Inventory Management
           </div>
           <div class="sidebar-section-label">Users</div>
           <div class="sidebar-item" id="nav-users" onclick="showPanel('users')">
-            👤 &nbsp; User Accounts
+             &nbsp; User Accounts
           </div>
           <div class="sidebar-section-label">Services</div>
           <div style="padding: var(--sp-3) var(--sp-4); font-size: var(--text-xs); color: var(--color-slate-400);">
@@ -191,7 +191,7 @@
                       <th>Product Name</th>
                       <th>Category</th>
                       <th>Price</th>
-                      <th>SKU</th>
+                      <th>Product Code</th>
                       <th>Actions</th>
                     </tr>
                   </thead>
@@ -316,17 +316,15 @@
               <select class="form-control" id="edit-p-category">
                 <option value="">Select…</option>
                 <option>Storage</option>
-                <option>Networking</option>
-                <option>Servers</option>
-                <option>Power</option>
                 <option>Compute</option>
+                <option>Networking</option>
                 <option>Security</option>
-                <option>Software</option>
+                <option>Accessories</option>
               </select>
             </div>
           </div>
           <div class="form-group mb-4">
-            <label class="form-label" for="edit-p-sku">SKU</label>
+            <label class="form-label" for="edit-p-sku">Product Code</label>
             <input class="form-control" type="text" id="edit-p-sku" />
           </div>
           <div class="form-group mb-4">
@@ -406,12 +404,10 @@
             <label class="form-label" for="inv-category">Category</label>
             <select class="form-control" id="inv-category">
               <option value="Storage">Storage</option>
-              <option value="Servers">Servers</option>
-              <option value="Networking">Networking</option>
-              <option value="Power">Power</option>
               <option value="Compute">Compute</option>
+              <option value="Networking">Networking</option>
               <option value="Security">Security</option>
-              <option value="Software">Software</option>
+              <option value="Accessories">Accessories</option>
             </select>
           </div>
           <div class="form-group">

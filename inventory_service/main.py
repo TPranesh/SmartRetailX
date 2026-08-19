@@ -60,20 +60,24 @@ app.add_middleware(
 # ── Seed Data ─────────────────────────────────────────────────────────────────
 
 SEED_INVENTORY = [
-    {"product_id": 1, "product_name": "Enterprise SSD 2TB",        "stock_quantity": 50, "warehouse_location": "Warehouse A"},
-    {"product_id": 2, "product_name": "Cloud Server Rack Unit",    "stock_quantity": 50, "warehouse_location": "Warehouse A"},
-    {"product_id": 3, "product_name": "10GbE Network Switch 48P",  "stock_quantity": 50, "warehouse_location": "Warehouse B"},
-    {"product_id": 4, "product_name": "UPS Power Module 10kVA",    "stock_quantity": 50, "warehouse_location": "Warehouse B"},
+    {"product_id": 1, "product_name": "ProBook 15-inch Business Laptop", "stock_quantity": 50, "warehouse_location": "Warehouse A - Main Hub"},
+    {"product_id": 2, "product_name": "Ergo Wireless Mouse",             "stock_quantity": 50, "warehouse_location": "Warehouse A - Main Hub"},
+    {"product_id": 3, "product_name": "Enterprise RTX 4000 Ada GPU",     "stock_quantity": 50, "warehouse_location": "Warehouse B - North Facility"},
+    {"product_id": 4, "product_name": "Enterprise 4TB NVMe SSD",        "stock_quantity": 50, "warehouse_location": "Warehouse B - North Facility"},
+    {"product_id": 5, "product_name": "24-Port Gigabit Network Switch",  "stock_quantity": 50, "warehouse_location": "Warehouse C - West Logistics"},
+    {"product_id": 6, "product_name": "Next-Gen Hardware Firewall",      "stock_quantity": 50, "warehouse_location": "Warehouse C - West Logistics"},
 ]
 
 
 def seed_inventory(db: Session) -> None:
-    """Inserts default inventory records for product IDs 1 to 4 if missing."""
+    """Inserts or updates default inventory records for product IDs 1 to 6."""
     for rec in SEED_INVENTORY:
         item = db.query(InventoryItem).filter(InventoryItem.product_id == rec["product_id"]).first()
         if not item:
             db.add(InventoryItem(**rec))
             logger.info("Auto-seeded inventory record for product #%d (50 units).", rec["product_id"])
+        else:
+            item.product_name = rec["product_name"]
     db.commit()
 
 

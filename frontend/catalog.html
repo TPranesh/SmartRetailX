@@ -172,17 +172,14 @@
           <select class="form-control" id="filter-category">
             <option value="">All categories</option>
             <option>Storage</option>
-            <option>Networking</option>
             <option>Compute</option>
+            <option>Networking</option>
             <option>Security</option>
-            <option>Software</option>
+            <option>Accessories</option>
           </select>
         </div>
         <div>
           <button class="btn btn-secondary" id="btn-search" onclick="loadProducts()">Search</button>
-        </div>
-        <div>
-          <button class="btn btn-primary" id="btn-add-product" onclick="openAddModal()">+ Add Product</button>
         </div>
       </div>
 
@@ -199,59 +196,7 @@
     </div>
   </main>
 
-  <!-- Add Product Modal -->
-  <div class="modal-overlay" id="modal-add-product">
-    <div class="modal">
-      <div class="modal-header">
-        <span class="modal-title">Add New Product</span>
-        <button class="modal-close" onclick="closeModal('modal-add-product')">&times;</button>
-      </div>
-      <div class="modal-body">
-        <form id="form-add-product" novalidate>
-          <div class="form-group">
-            <label class="form-label" for="p-name">Product Name <span class="required">*</span></label>
-            <input class="form-control" type="text" id="p-name" required />
-          </div>
-          <div class="form-row">
-            <div class="form-group">
-              <label class="form-label" for="p-price">Unit Price (£) <span class="required">*</span></label>
-              <input class="form-control" type="number" id="p-price" step="0.01" min="0.01" required />
-            </div>
-            <div class="form-group">
-              <label class="form-label" for="p-stock">Stock Level <span class="required">*</span></label>
-              <input class="form-control" type="number" id="p-stock" min="0" value="0" required />
-            </div>
-          </div>
-          <div class="form-row">
-            <div class="form-group">
-              <label class="form-label" for="p-category">Category</label>
-              <select class="form-control" id="p-category">
-                <option value="">Select…</option>
-                <option>Storage</option>
-                <option>Networking</option>
-                <option>Compute</option>
-                <option>Security</option>
-                <option>Software</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label class="form-label" for="p-sku">SKU</label>
-              <input class="form-control" type="text" id="p-sku" placeholder="SSD-2TB-001" />
-            </div>
-          </div>
-          <div class="form-group">
-            <label class="form-label" for="p-desc">Description</label>
-            <textarea class="form-control" id="p-desc" rows="3"></textarea>
-          </div>
-          <div id="add-product-error" class="alert alert-danger" style="display:none;"></div>
-        </form>
-      </div>
-      <div class="modal-footer">
-        <button class="btn btn-secondary" onclick="closeModal('modal-add-product')">Cancel</button>
-        <button class="btn btn-primary" id="btn-save-product" onclick="saveProduct()">Save Product</button>
-      </div>
-    </div>
-  </div>
+
 
   <!-- Page Footer -->
   <footer class="page-footer">
@@ -326,7 +271,7 @@
             <div class="product-card-header">
               <div class="product-category-tag">${p.category || 'Uncategorised'}</div>
               <div class="product-name">${escHtml(p.name)}</div>
-              <div class="product-sku">${p.sku ? 'SKU: ' + p.sku : 'ID: #' + p.id}</div>
+              <div class="product-sku">${p.sku ? 'Code: ' + p.sku : 'ID: #' + p.id}</div>
             </div>
             <div class="product-card-body">
               <p class="product-description">${escHtml(p.description || 'No description provided.')}</p>
@@ -372,47 +317,6 @@
       }
       cartManager.saveCart(cart);
       showToast(`"${name}" added to order.`, 'success');
-    }
-
-    // ── Add Product Modal ──────────────────────────────────────────────────────
-    function openAddModal() {
-      if (!session.isAdmin()) {
-        showToast('Admin privileges required to add products.', 'error');
-        return;
-      }
-      document.getElementById('modal-add-product').classList.add('open');
-    }
-    function closeModal(id) { document.getElementById(id).classList.remove('open'); }
-
-    async function saveProduct() {
-      const btn = document.getElementById('btn-save-product');
-      const errEl = document.getElementById('add-product-error');
-      errEl.style.display = 'none';
-      btn.disabled = true;
-      btn.textContent = 'Saving…';
-      try {
-        await apiFetch(`${API.PRODUCT}/products`, {
-          method: 'POST',
-          body: {
-            name: document.getElementById('p-name').value.trim(),
-            price: parseFloat(document.getElementById('p-price').value),
-            stock_level: parseInt(document.getElementById('p-stock').value, 10),
-            category: document.getElementById('p-category').value || null,
-            sku: document.getElementById('p-sku').value.trim() || null,
-            description: document.getElementById('p-desc').value.trim() || null,
-          },
-        });
-        closeModal('modal-add-product');
-        showToast('Product saved successfully.', 'success');
-        document.getElementById('form-add-product').reset();
-        loadProducts();
-      } catch (err) {
-        errEl.textContent = err.message;
-        errEl.style.display = 'flex';
-      } finally {
-        btn.disabled = false;
-        btn.textContent = 'Save Product';
-      }
     }
 
     // ── Utility ────────────────────────────────────────────────────────────────
