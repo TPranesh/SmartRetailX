@@ -154,6 +154,7 @@ resource "aws_ecs_task_definition" "order_service" {
       ]
       environment = [
         { name = "PYTHONPATH", value = "/app" },
+        { name = "INVENTORY_SERVICE_URL", value = "http://${aws_lb.main.dns_name}" },
         { name = "SQS_QUEUE_URL", value = aws_sqs_queue.order_events.url },
         { name = "AWS_REGION", value = var.aws_region },
         { name = "DATABASE_URL", value = "postgresql://${var.db_username}:${var.db_password}@${aws_db_instance.postgres.endpoint}/${var.db_name}" }
