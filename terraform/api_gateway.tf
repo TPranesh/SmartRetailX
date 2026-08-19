@@ -1,5 +1,5 @@
 # terraform/api_gateway.tf
-# Amazon API Gateway HTTP API Ingress & Routing to Application Load Balancer (ALB)
+# Amazon API Gateway HTTP API Ingress & Central $default Proxy to ALB
 
 resource "aws_apigatewayv2_api" "http_api" {
   name          = "smartretailx-api-gateway"
@@ -45,8 +45,8 @@ resource "aws_apigatewayv2_stage" "default" {
   }
 }
 
-# ── Integrations (HTTP Proxy to Application Load Balancer DNS) ───────────────
-resource "aws_apigatewayv2_integration" "user_service" {
+# ── Central ALB Proxy Integration ─────────────────────────────────────────────
+resource "aws_apigatewayv2_integration" "alb_integration" {
   api_id                 = aws_apigatewayv2_api.http_api.id
   integration_type       = "HTTP_PROXY"
   integration_uri        = "http://${aws_lb.main.dns_name}"
@@ -54,79 +54,9 @@ resource "aws_apigatewayv2_integration" "user_service" {
   payload_format_version = "1.0"
 }
 
-resource "aws_apigatewayv2_integration" "product_service" {
-  api_id                 = aws_apigatewayv2_api.http_api.id
-  integration_type       = "HTTP_PROXY"
-  integration_uri        = "http://${aws_lb.main.dns_name}"
-  integration_method     = "ANY"
-  payload_format_version = "1.0"
-}
-
-resource "aws_apigatewayv2_integration" "order_service" {
-  api_id                 = aws_apigatewayv2_api.http_api.id
-  integration_type       = "HTTP_PROXY"
-  integration_uri        = "http://${aws_lb.main.dns_name}"
-  integration_method     = "ANY"
-  payload_format_version = "1.0"
-}
-
-resource "aws_apigatewayv2_integration" "inventory_service" {
-  api_id                 = aws_apigatewayv2_api.http_api.id
-  integration_type       = "HTTP_PROXY"
-  integration_uri        = "http://${aws_lb.main.dns_name}"
-  integration_method     = "ANY"
-  payload_format_version = "1.0"
-}
-
-# ── Routes ───────────────────────────────────────────────────────────────────
-# /users routes
-resource "aws_apigatewayv2_route" "users_route" {
+# ── Catch-All ($default) Passthrough Route ────────────────────────────────────
+resource "aws_apigatewayv2_route" "default_route" {
   api_id    = aws_apigatewayv2_api.http_api.id
-  route_key = "ANY /users/{proxy+}"
-  target    = "integrations/${aws_apigatewayv2_integration.user_service.id}"
-}
-
-resource "aws_apigatewayv2_route" "users_root_route" {
-  api_id    = aws_apigatewayv2_api.http_api.id
-  route_key = "ANY /users"
-  target    = "integrations/${aws_apigatewayv2_integration.user_service.id}"
-}
-
-# /products routes
-resource "aws_apigatewayv2_route" "products_route" {
-  api_id    = aws_apigatewayv2_api.http_api.id
-  route_key = "ANY /products/{proxy+}"
-  target    = "integrations/${aws_apigatewayv2_integration.product_service.id}"
-}
-
-resource "aws_apigatewayv2_route" "products_root_route" {
-  api_id    = aws_apigatewayv2_api.http_api.id
-  route_key = "ANY /products"
-  target    = "integrations/${aws_apigatewayv2_integration.product_service.id}"
-}
-
-# /orders routes
-resource "aws_apigatewayv2_route" "orders_route" {
-  api_id    = aws_apigatewayv2_api.http_api.id
-  route_key = "ANY /orders/{proxy+}"
-  target    = "integrations/${aws_apigatewayv2_integration.order_service.id}"
-}
-
-resource "aws_apigatewayv2_route" "orders_root_route" {
-  api_id    = aws_apigatewayv2_api.http_api.id
-  route_key = "ANY /orders"
-  target    = "integrations/${aws_apigatewayv2_integration.order_service.id}"
-}
-
-# /inventory routes
-resource "aws_apigatewayv2_route" "inventory_route" {
-  api_id    = aws_apigatewayv2_api.http_api.id
-  route_key = "ANY /inventory/{proxy+}"
-  target    = "integrations/${aws_apigatewayv2_integration.inventory_service.id}"
-}
-
-resource "aws_apigatewayv2_route" "inventory_root_route" {
-  api_id    = aws_apigatewayv2_api.http_api.id
-  route_key = "ANY /inventory"
-  target    = "integrations/${aws_apigatewayv2_integration.inventory_service.id}"
+  route_key = "$default"
+  target    = "integrations/${aws_apigatewayv2_integration.alb_integration.id}"
 }
