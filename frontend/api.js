@@ -284,19 +284,26 @@ async function deleteMyAccount() {
 
 // ── Order Item Formatting Helper ─────────────────────────────────────────────
 /**
- * Formats an array of order items into a clean, human-readable string.
- * Example: "Enterprise SSD 2TB (Qty: 2), 10GbE Switch 48P (Qty: 1)"
- * Returns "No items data" if items array is empty or missing.
+ * Formats an order object or array of order items into clean HTML badges.
+ * Example: "Enterprise SSD 2TB (x2) 10GbE Switch 48P (x1)"
+ * Accepts an order object { items: [...] } or an items array [...].
  */
-function formatOrderItems(items) {
-  if (!Array.isArray(items) || items.length === 0) {
-    return 'No items data';
+function formatOrderItems(orderOrItems) {
+  let items = [];
+  if (Array.isArray(orderOrItems)) {
+    items = orderOrItems;
+  } else if (orderOrItems && Array.isArray(orderOrItems.items)) {
+    items = orderOrItems.items;
+  }
+  if (!items || items.length === 0) {
+    return '<span style="color:var(--color-slate-400);font-style:italic;">No item details</span>';
   }
   return items.map(item => {
-    const name = item.product_name || (item.product_id ? `Product #${item.product_id}` : 'Unknown Product');
-    const qty = item.quantity || 1;
-    return `${name} (Qty: ${qty})`;
-  }).join(', ');
+    const rawName = item.product_name || item.name || (item.product_id || item.id ? `Product #${item.product_id || item.id}` : 'Item');
+    const escName = typeof escHtml === 'function' ? escHtml(rawName) : rawName;
+    const qty = item.quantity || item.qty || 1;
+    return `<span class="badge badge-neutral" style="display:inline-block;margin:2px 4px 2px 0;padding:2px 6px;font-size:11px;font-weight:500;">${escName} (x${qty})</span>`;
+  }).join(' ');
 }
 
 // ── RBAC & Global Nav Sync ───────────────────────────────────────────────────
