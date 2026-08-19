@@ -100,6 +100,7 @@ def startup_tasks():
 # ── Health Check ──────────────────────────────────────────────────────────────
 
 @app.get("/health", tags=["Health"], summary="Service health check")
+@app.get("/inventory/health", tags=["Health"], summary="Service health check (routed)")
 def health_check():
     return {"status": "healthy", "service": "inventory-service", "port": 8004, "phase": 2}
 

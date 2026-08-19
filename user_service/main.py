@@ -95,6 +95,7 @@ def startup_tasks():
 # ── Health Check ──────────────────────────────────────────────────────────────
 
 @app.get("/health", tags=["Health"], summary="Service health check")
+@app.get("/users/health", tags=["Health"], summary="Service health check (routed)")
 def health_check():
     """Returns service liveness status."""
     return {"status": "healthy", "service": "user-service", "port": 8001, "phase": 2}
@@ -107,6 +108,12 @@ def health_check():
     response_model=LoginResponse,
     tags=["Authentication"],
     summary="User login — returns a signed JWT",
+)
+@app.post(
+    "/users/login",
+    response_model=LoginResponse,
+    tags=["Authentication"],
+    summary="User login — routed alternative",
 )
 def login(credentials: LoginRequest, db: Session = Depends(get_db)):
     """
@@ -153,6 +160,8 @@ def login(credentials: LoginRequest, db: Session = Depends(get_db)):
     tags=["Users"],
     summary="Register a new user",
 )
+@app.post("", response_model=UserResponse, status_code=status.HTTP_201_CREATED, include_in_schema=False)
+@app.post("/users/users", response_model=UserResponse, status_code=status.HTTP_201_CREATED, include_in_schema=False)
 def register_user(payload: UserCreate, db: Session = Depends(get_db)):
     """
     Creates a new user account.
@@ -178,6 +187,8 @@ def register_user(payload: UserCreate, db: Session = Depends(get_db)):
     tags=["Users"],
     summary="List all users",
 )
+@app.get("", response_model=List[UserResponse], include_in_schema=False)
+@app.get("/users/users", response_model=List[UserResponse], include_in_schema=False)
 def list_users(skip: int = 0, limit: int = 50, db: Session = Depends(get_db)):
     """Returns a paginated list of all registered users."""
     return db.query(User).offset(skip).limit(limit).all()
@@ -189,6 +200,7 @@ def list_users(skip: int = 0, limit: int = 50, db: Session = Depends(get_db)):
     tags=["Users"],
     summary="Get a user by ID",
 )
+@app.get("/{user_id}", response_model=UserResponse, include_in_schema=False)
 def get_user(user_id: int, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
@@ -202,6 +214,7 @@ def get_user(user_id: int, db: Session = Depends(get_db)):
     tags=["Users"],
     summary="Update user details",
 )
+@app.put("/{user_id}", response_model=UserResponse, include_in_schema=False)
 def update_user(user_id: int, payload: UserUpdate, db: Session = Depends(get_db)):
     """Partially updates a user's profile (full_name, company, role)."""
     user = db.query(User).filter(User.id == user_id).first()
@@ -220,6 +233,7 @@ def update_user(user_id: int, payload: UserUpdate, db: Session = Depends(get_db)
     tags=["Users"],
     summary="Delete a user",
 )
+@app.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT, include_in_schema=False)
 def delete_user(user_id: int, db: Session = Depends(get_db)):
     """Permanently deletes a user account."""
     if user_id == 1:

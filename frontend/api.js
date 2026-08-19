@@ -10,13 +10,19 @@
  */
 
 // ── Service Base URLs (Production AWS API Gateway) ───────────────────────────
-const AWS_API_GATEWAY_URL = 'https://8vf01zww74.execute-api.eu-west-1.amazonaws.com';
+const API_BASE_URL = 'https://8vf01zww74.execute-api.eu-west-1.amazonaws.com';
+
+const USER_API      = `${API_BASE_URL}/users`;
+const PRODUCT_API   = `${API_BASE_URL}/products`;
+const ORDER_API     = `${API_BASE_URL}/orders`;
+const INVENTORY_API = `${API_BASE_URL}/inventory`;
 
 const API = {
-  USER:      AWS_API_GATEWAY_URL,
-  PRODUCT:   AWS_API_GATEWAY_URL,
-  ORDER:     AWS_API_GATEWAY_URL,
-  INVENTORY: AWS_API_GATEWAY_URL,
+  BASE:      API_BASE_URL,
+  USER:      USER_API,
+  PRODUCT:   PRODUCT_API,
+  ORDER:     ORDER_API,
+  INVENTORY: INVENTORY_API,
 };
 
 // ── Cart Storage & User Isolation ──────────────────────────────────────────────
@@ -275,7 +281,7 @@ async function deleteMyAccount() {
     return;
   }
   try {
-    await apiFetch(`${API.USER}/users/${user.user_id}`, { method: 'DELETE' });
+    await apiFetch(`${API.USER}/${user.user_id}`, { method: 'DELETE' });
     alert('Your account has been deleted successfully.');
     session.clear();
     window.location.href = 'index.html';
@@ -432,11 +438,16 @@ async function checkServiceHealth(baseUrl, dotId) {
   if (!dot) return;
   dot.className = 'service-dot checking';
   try {
-    await fetch(`${baseUrl}/health`, { signal: AbortSignal.timeout(2500) });
-    dot.className = 'service-dot online';
-    dot.title = 'Online';
+    const res = await fetch(`${baseUrl}/health`, { signal: AbortSignal.timeout(3000) });
+    if (res.ok) {
+      dot.className = 'service-dot online';
+      dot.title = 'Online';
+    } else {
+      dot.className = 'service-dot offline';
+      dot.title = `Offline (HTTP ${res.status})`;
+    }
   } catch (_) {
     dot.className = 'service-dot offline';
-    dot.title = 'Offline — start the service with uvicorn';
+    dot.title = 'Offline — service reachability error';
   }
 }

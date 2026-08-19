@@ -58,6 +58,7 @@ app.add_middleware(
 # ── Health Check ──────────────────────────────────────────────────────────────
 
 @app.get("/health", tags=["Health"], summary="Service health check")
+@app.get("/orders/health", tags=["Health"], summary="Service health check (routed)")
 def health_check():
     return {"status": "healthy", "service": "order-service", "port": 8003, "phase": 2}
 
