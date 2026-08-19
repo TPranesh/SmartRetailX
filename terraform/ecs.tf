@@ -63,6 +63,10 @@ resource "aws_ecs_service" "user_service" {
     container_port   = 8001
   }
 
+  lifecycle {
+    ignore_changes = [desired_count]
+  }
+
   depends_on = [aws_lb_listener.http]
 }
 
@@ -126,6 +130,10 @@ resource "aws_ecs_service" "product_service" {
     target_group_arn = aws_lb_target_group.product_service.arn
     container_name   = "product-service"
     container_port   = 8002
+  }
+
+  lifecycle {
+    ignore_changes = [desired_count]
   }
 
   depends_on = [aws_lb_listener.http]
@@ -195,6 +203,10 @@ resource "aws_ecs_service" "order_service" {
     container_port   = 8003
   }
 
+  lifecycle {
+    ignore_changes = [desired_count]
+  }
+
   depends_on = [aws_lb_listener.http]
 }
 
@@ -261,5 +273,117 @@ resource "aws_ecs_service" "inventory_service" {
     container_port   = 8004
   }
 
+  lifecycle {
+    ignore_changes = [desired_count]
+  }
+
   depends_on = [aws_lb_listener.http]
+}
+
+# ==============================================================================
+# ECS FARGATE SERVICE AUTO-SCALING CONFIGURATIONS (TARGET TRACKING AT 70% CPU)
+# ==============================================================================
+
+# ── Auto-Scaling: User Service ────────────────────────────────────────────────
+resource "aws_appautoscaling_target" "user_service_scaling_target" {
+  max_capacity       = 3
+  min_capacity       = 1
+  resource_id        = "service/${aws_ecs_cluster.main.name}/${aws_ecs_service.user_service.name}"
+  scalable_dimension = "ecs:service:DesiredCount"
+  service_namespace  = "ecs"
+}
+
+resource "aws_appautoscaling_policy" "user_service_cpu_policy" {
+  name               = "user-service-cpu-scaling"
+  policy_type        = "TargetTrackingScaling"
+  resource_id        = aws_appautoscaling_target.user_service_scaling_target.resource_id
+  scalable_dimension = aws_appautoscaling_target.user_service_scaling_target.scalable_dimension
+  service_namespace  = aws_appautoscaling_target.user_service_scaling_target.service_namespace
+
+  target_tracking_scaling_policy_configuration {
+    predefined_metric_specification {
+      predefined_metric_type = "ECSServiceAverageCPUUtilization"
+    }
+    target_value       = 70.0
+    scale_in_cooldown  = 300
+    scale_out_cooldown = 60
+  }
+}
+
+# ── Auto-Scaling: Product Service ─────────────────────────────────────────────
+resource "aws_appautoscaling_target" "product_service_scaling_target" {
+  max_capacity       = 3
+  min_capacity       = 1
+  resource_id        = "service/${aws_ecs_cluster.main.name}/${aws_ecs_service.product_service.name}"
+  scalable_dimension = "ecs:service:DesiredCount"
+  service_namespace  = "ecs"
+}
+
+resource "aws_appautoscaling_policy" "product_service_cpu_policy" {
+  name               = "product-service-cpu-scaling"
+  policy_type        = "TargetTrackingScaling"
+  resource_id        = aws_appautoscaling_target.product_service_scaling_target.resource_id
+  scalable_dimension = aws_appautoscaling_target.product_service_scaling_target.scalable_dimension
+  service_namespace  = aws_appautoscaling_target.product_service_scaling_target.service_namespace
+
+  target_tracking_scaling_policy_configuration {
+    predefined_metric_specification {
+      predefined_metric_type = "ECSServiceAverageCPUUtilization"
+    }
+    target_value       = 70.0
+    scale_in_cooldown  = 300
+    scale_out_cooldown = 60
+  }
+}
+
+# ── Auto-Scaling: Order Service ───────────────────────────────────────────────
+resource "aws_appautoscaling_target" "order_service_scaling_target" {
+  max_capacity       = 3
+  min_capacity       = 1
+  resource_id        = "service/${aws_ecs_cluster.main.name}/${aws_ecs_service.order_service.name}"
+  scalable_dimension = "ecs:service:DesiredCount"
+  service_namespace  = "ecs"
+}
+
+resource "aws_appautoscaling_policy" "order_service_cpu_policy" {
+  name               = "order-service-cpu-scaling"
+  policy_type        = "TargetTrackingScaling"
+  resource_id        = aws_appautoscaling_target.order_service_scaling_target.resource_id
+  scalable_dimension = aws_appautoscaling_target.order_service_scaling_target.scalable_dimension
+  service_namespace  = aws_appautoscaling_target.order_service_scaling_target.service_namespace
+
+  target_tracking_scaling_policy_configuration {
+    predefined_metric_specification {
+      predefined_metric_type = "ECSServiceAverageCPUUtilization"
+    }
+    target_value       = 70.0
+    scale_in_cooldown  = 300
+    scale_out_cooldown = 60
+  }
+}
+
+# ── Auto-Scaling: Inventory Service ───────────────────────────────────────────
+resource "aws_appautoscaling_target" "inventory_service_scaling_target" {
+  max_capacity       = 3
+  min_capacity       = 1
+  resource_id        = "service/${aws_ecs_cluster.main.name}/${aws_ecs_service.inventory_service.name}"
+  scalable_dimension = "ecs:service:DesiredCount"
+  service_namespace  = "ecs"
+}
+
+resource "aws_appautoscaling_policy" "inventory_service_cpu_policy" {
+  name               = "inventory-service-cpu-scaling"
+  policy_type        = "TargetTrackingScaling"
+  resource_id        = aws_appautoscaling_target.inventory_service_scaling_target.resource_id
+  scalable_dimension = aws_appautoscaling_target.inventory_service_scaling_target.scalable_dimension
+  service_namespace  = aws_appautoscaling_target.inventory_service_scaling_target.service_namespace
+
+  target_tracking_scaling_policy_configuration {
+    predefined_metric_specification {
+      predefined_metric_type = "ECSServiceAverageCPUUtilization"
+    }
+    target_value       = 70.0
+    scale_in_cooldown  = 300
+    scale_out_cooldown = 60
+  }
 }
