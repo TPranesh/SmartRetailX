@@ -277,6 +277,9 @@ async function deleteMyAccount() {
     alert('Your account has been deleted successfully.');
     session.clear();
     window.location.href = 'index.html';
+  } catch (err) {
+    showToast('Account deletion failed: ' + err.message, 'error');
+  }
 }
 
 // ── Order Item Formatting Helper ─────────────────────────────────────────────
