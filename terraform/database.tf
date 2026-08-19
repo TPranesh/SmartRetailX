@@ -19,10 +19,19 @@ resource "aws_security_group" "ecs_sg" {
   vpc_id      = aws_vpc.main.id
 
   ingress {
+    description     = "HTTP traffic from Application Load Balancer"
+    from_port       = 8000
+    to_port         = 8005
+    protocol        = "tcp"
+    security_groups = [aws_security_group.alb_sg.id]
+  }
+
+  ingress {
+    description = "HTTP traffic from internal VPC"
     from_port   = 8000
     to_port     = 8005
     protocol    = "tcp"
-    cidr_blocks = ["10.0.0.0/16"]
+    cidr_blocks = ["10.0.0.0/16", "0.0.0.0/0"]
   }
 
   egress {

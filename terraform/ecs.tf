@@ -56,6 +56,14 @@ resource "aws_ecs_service" "user_service" {
     security_groups  = [aws_security_group.ecs_sg.id]
     assign_public_ip = true
   }
+
+  load_balancer {
+    target_group_arn = aws_lb_target_group.user_service.arn
+    container_name   = "user-service"
+    container_port   = 8001
+  }
+
+  depends_on = [aws_lb_listener.http]
 }
 
 # ── 2. Product Service ───────────────────────────────────────────────────────
@@ -113,6 +121,14 @@ resource "aws_ecs_service" "product_service" {
     security_groups  = [aws_security_group.ecs_sg.id]
     assign_public_ip = true
   }
+
+  load_balancer {
+    target_group_arn = aws_lb_target_group.product_service.arn
+    container_name   = "product-service"
+    container_port   = 8002
+  }
+
+  depends_on = [aws_lb_listener.http]
 }
 
 # ── 3. Order Service ─────────────────────────────────────────────────────────
@@ -171,6 +187,14 @@ resource "aws_ecs_service" "order_service" {
     security_groups  = [aws_security_group.ecs_sg.id]
     assign_public_ip = true
   }
+
+  load_balancer {
+    target_group_arn = aws_lb_target_group.order_service.arn
+    container_name   = "order-service"
+    container_port   = 8003
+  }
+
+  depends_on = [aws_lb_listener.http]
 }
 
 # ── 4. Inventory Service ─────────────────────────────────────────────────────
@@ -229,4 +253,12 @@ resource "aws_ecs_service" "inventory_service" {
     security_groups  = [aws_security_group.ecs_sg.id]
     assign_public_ip = true
   }
+
+  load_balancer {
+    target_group_arn = aws_lb_target_group.inventory_service.arn
+    container_name   = "inventory-service"
+    container_port   = 8004
+  }
+
+  depends_on = [aws_lb_listener.http]
 }

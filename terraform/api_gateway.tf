@@ -1,5 +1,5 @@
 # terraform/api_gateway.tf
-# Amazon API Gateway HTTP API Ingress & Routing
+# Amazon API Gateway HTTP API Ingress & Routing to Application Load Balancer (ALB)
 
 resource "aws_apigatewayv2_api" "http_api" {
   name          = "smartretailx-api-gateway"
@@ -45,34 +45,37 @@ resource "aws_apigatewayv2_stage" "default" {
   }
 }
 
-# ── Integrations ─────────────────────────────────────────────────────────────
-# HTTP Proxy Integration for Microservices
+# ── Integrations (HTTP Proxy to Application Load Balancer DNS) ───────────────
 resource "aws_apigatewayv2_integration" "user_service" {
-  api_id             = aws_apigatewayv2_api.http_api.id
-  integration_type   = "HTTP_PROXY"
-  integration_uri    = "https://example.com"
-  integration_method = "ANY"
+  api_id                 = aws_apigatewayv2_api.http_api.id
+  integration_type       = "HTTP_PROXY"
+  integration_uri        = "http://${aws_lb.main.dns_name}/{proxy}"
+  integration_method     = "ANY"
+  payload_format_version = "1.0"
 }
 
 resource "aws_apigatewayv2_integration" "product_service" {
-  api_id             = aws_apigatewayv2_api.http_api.id
-  integration_type   = "HTTP_PROXY"
-  integration_uri    = "https://example.com"
-  integration_method = "ANY"
+  api_id                 = aws_apigatewayv2_api.http_api.id
+  integration_type       = "HTTP_PROXY"
+  integration_uri        = "http://${aws_lb.main.dns_name}/{proxy}"
+  integration_method     = "ANY"
+  payload_format_version = "1.0"
 }
 
 resource "aws_apigatewayv2_integration" "order_service" {
-  api_id             = aws_apigatewayv2_api.http_api.id
-  integration_type   = "HTTP_PROXY"
-  integration_uri    = "https://example.com"
-  integration_method = "ANY"
+  api_id                 = aws_apigatewayv2_api.http_api.id
+  integration_type       = "HTTP_PROXY"
+  integration_uri        = "http://${aws_lb.main.dns_name}/{proxy}"
+  integration_method     = "ANY"
+  payload_format_version = "1.0"
 }
 
 resource "aws_apigatewayv2_integration" "inventory_service" {
-  api_id             = aws_apigatewayv2_api.http_api.id
-  integration_type   = "HTTP_PROXY"
-  integration_uri    = "https://example.com"
-  integration_method = "ANY"
+  api_id                 = aws_apigatewayv2_api.http_api.id
+  integration_type       = "HTTP_PROXY"
+  integration_uri        = "http://${aws_lb.main.dns_name}/{proxy}"
+  integration_method     = "ANY"
+  payload_format_version = "1.0"
 }
 
 # ── Routes ───────────────────────────────────────────────────────────────────
@@ -80,6 +83,12 @@ resource "aws_apigatewayv2_integration" "inventory_service" {
 resource "aws_apigatewayv2_route" "users_route" {
   api_id    = aws_apigatewayv2_api.http_api.id
   route_key = "ANY /users/{proxy+}"
+  target    = "integrations/${aws_apigatewayv2_integration.user_service.id}"
+}
+
+resource "aws_apigatewayv2_route" "users_root_route" {
+  api_id    = aws_apigatewayv2_api.http_api.id
+  route_key = "ANY /users"
   target    = "integrations/${aws_apigatewayv2_integration.user_service.id}"
 }
 
@@ -103,9 +112,21 @@ resource "aws_apigatewayv2_route" "orders_route" {
   target    = "integrations/${aws_apigatewayv2_integration.order_service.id}"
 }
 
+resource "aws_apigatewayv2_route" "orders_root_route" {
+  api_id    = aws_apigatewayv2_api.http_api.id
+  route_key = "ANY /orders"
+  target    = "integrations/${aws_apigatewayv2_integration.order_service.id}"
+}
+
 # /inventory routes
 resource "aws_apigatewayv2_route" "inventory_route" {
   api_id    = aws_apigatewayv2_api.http_api.id
   route_key = "ANY /inventory/{proxy+}"
+  target    = "integrations/${aws_apigatewayv2_integration.inventory_service.id}"
+}
+
+resource "aws_apigatewayv2_route" "inventory_root_route" {
+  api_id    = aws_apigatewayv2_api.http_api.id
+  route_key = "ANY /inventory"
   target    = "integrations/${aws_apigatewayv2_integration.inventory_service.id}"
 }
