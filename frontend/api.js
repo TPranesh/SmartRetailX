@@ -9,12 +9,14 @@
  *   - applyRbacNav() hides the Admin link for non-admin users
  */
 
-// ── Service Base URLs ────────────────────────────────────────────────────────
+// ── Service Base URLs (Production AWS API Gateway) ───────────────────────────
+const AWS_API_GATEWAY_URL = 'https://8vf01zww74.execute-api.eu-west-1.amazonaws.com';
+
 const API = {
-  USER:      'http://localhost:8001',
-  PRODUCT:   'http://localhost:8002',
-  ORDER:     'http://localhost:8003',
-  INVENTORY: 'http://localhost:8004',
+  USER:      AWS_API_GATEWAY_URL,
+  PRODUCT:   AWS_API_GATEWAY_URL,
+  ORDER:     AWS_API_GATEWAY_URL,
+  INVENTORY: AWS_API_GATEWAY_URL,
 };
 
 // ── Cart Storage & User Isolation ──────────────────────────────────────────────
