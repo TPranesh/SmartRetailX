@@ -49,7 +49,7 @@ resource "aws_apigatewayv2_stage" "default" {
 resource "aws_apigatewayv2_integration" "user_service" {
   api_id                 = aws_apigatewayv2_api.http_api.id
   integration_type       = "HTTP_PROXY"
-  integration_uri        = "http://${aws_lb.main.dns_name}/{proxy}"
+  integration_uri        = "http://${aws_lb.main.dns_name}"
   integration_method     = "ANY"
   payload_format_version = "1.0"
 }
@@ -57,7 +57,7 @@ resource "aws_apigatewayv2_integration" "user_service" {
 resource "aws_apigatewayv2_integration" "product_service" {
   api_id                 = aws_apigatewayv2_api.http_api.id
   integration_type       = "HTTP_PROXY"
-  integration_uri        = "http://${aws_lb.main.dns_name}/{proxy}"
+  integration_uri        = "http://${aws_lb.main.dns_name}"
   integration_method     = "ANY"
   payload_format_version = "1.0"
 }
@@ -65,7 +65,7 @@ resource "aws_apigatewayv2_integration" "product_service" {
 resource "aws_apigatewayv2_integration" "order_service" {
   api_id                 = aws_apigatewayv2_api.http_api.id
   integration_type       = "HTTP_PROXY"
-  integration_uri        = "http://${aws_lb.main.dns_name}/{proxy}"
+  integration_uri        = "http://${aws_lb.main.dns_name}"
   integration_method     = "ANY"
   payload_format_version = "1.0"
 }
@@ -73,7 +73,7 @@ resource "aws_apigatewayv2_integration" "order_service" {
 resource "aws_apigatewayv2_integration" "inventory_service" {
   api_id                 = aws_apigatewayv2_api.http_api.id
   integration_type       = "HTTP_PROXY"
-  integration_uri        = "http://${aws_lb.main.dns_name}/{proxy}"
+  integration_uri        = "http://${aws_lb.main.dns_name}"
   integration_method     = "ANY"
   payload_format_version = "1.0"
 }
