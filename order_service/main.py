@@ -17,7 +17,7 @@ import boto3
 
 from fastapi import FastAPI, Depends, HTTPException, status, Query
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from typing import List, Optional
 
 from order_service.database import engine, get_db, Base
@@ -200,7 +200,7 @@ def list_orders(
     db: Session = Depends(get_db),
 ):
     """Returns all orders. Supports filtering by user_id and status."""
-    query = db.query(Order)
+    query = db.query(Order).options(joinedload(Order.items))
     if user_id:
         query = query.filter(Order.user_id == user_id)
     if status_filter:

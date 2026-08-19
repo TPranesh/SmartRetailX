@@ -160,7 +160,7 @@
                       <th>User ID</th>
                       <th>Status</th>
                       <th>Total</th>
-                      <th>Items</th>
+                      <th>Ordered Items</th>
                       <th>Created</th>
                       <th>Actions</th>
                     </tr>
@@ -532,7 +532,7 @@
             <td>${o.user_id}</td>
             <td>${statusBadge(o.status)}</td>
             <td>${formatCurrency(o.total_amount)}</td>
-            <td>${o.items.length} item${o.items.length !== 1 ? 's' : ''}</td>
+            <td style="max-width:280px;font-size:var(--text-xs);">${escHtml(formatOrderItems(o.items))}</td>
             <td>${formatDate(o.created_at)}</td>
             <td>
               <div class="table-actions">

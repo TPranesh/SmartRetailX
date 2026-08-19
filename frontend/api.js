@@ -277,9 +277,23 @@ async function deleteMyAccount() {
     alert('Your account has been deleted successfully.');
     session.clear();
     window.location.href = 'index.html';
-  } catch (err) {
-    showToast('Account deletion failed: ' + err.message, 'error');
+}
+
+// ── Order Item Formatting Helper ─────────────────────────────────────────────
+/**
+ * Formats an array of order items into a clean, human-readable string.
+ * Example: "Enterprise SSD 2TB (Qty: 2), 10GbE Switch 48P (Qty: 1)"
+ * Returns "No items data" if items array is empty or missing.
+ */
+function formatOrderItems(items) {
+  if (!Array.isArray(items) || items.length === 0) {
+    return 'No items data';
   }
+  return items.map(item => {
+    const name = item.product_name || (item.product_id ? `Product #${item.product_id}` : 'Unknown Product');
+    const qty = item.quantity || 1;
+    return `${name} (Qty: ${qty})`;
+  }).join(', ');
 }
 
 // ── RBAC & Global Nav Sync ───────────────────────────────────────────────────
