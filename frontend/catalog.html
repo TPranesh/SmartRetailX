@@ -241,8 +241,8 @@
         const params = new URLSearchParams({ limit: 100 });
         if (category) params.set('category', category);
 
-        // Fetch from Product Service (port 8002)
-        let products = await apiFetch(`${API.PRODUCT}/products?${params}`);
+        // Fetch from Product Service
+        let products = await apiFetch(`${API.PRODUCT}?${params}`);
 
         // Client-side search filter on name
         if (searchTerm) {

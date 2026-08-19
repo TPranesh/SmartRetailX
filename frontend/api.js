@@ -192,7 +192,7 @@ async function placeOrder(orderData) {
   if (!token) {
     throw new Error('You must be signed in to place an order.');
   }
-  return await apiFetch(`${API.ORDER}/orders`, {
+  return await apiFetch(`${API.ORDER}`, {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${token}`,
@@ -214,9 +214,9 @@ async function fetchMyOrders() {
 
   let orders = [];
   try {
-    orders = await apiFetch(`${API.ORDER}/orders/user/${user.user_id}`);
+    orders = await apiFetch(`${API.ORDER}/user/${user.user_id}`);
   } catch (_) {
-    orders = await apiFetch(`${API.ORDER}/orders?limit=200`);
+    orders = await apiFetch(`${API.ORDER}?limit=200`);
   }
 
   if (!Array.isArray(orders)) orders = [];
@@ -234,7 +234,7 @@ async function fetchMyOrders() {
  * Restocks a product in the Inventory Service (creates inventory record if not found).
  */
 async function restockProduct(productId, quantity) {
-  return await apiFetch(`${API.INVENTORY}/inventory/${productId}/restock?quantity=${quantity}`, {
+  return await apiFetch(`${API.INVENTORY}/${productId}/restock?quantity=${quantity}`, {
     method: 'PATCH',
   });
 }
@@ -246,7 +246,7 @@ async function updateInventoryStock(productId, stockQuantity, warehouseLocation 
   const body = {};
   if (stockQuantity !== undefined && stockQuantity !== null) body.stock_quantity = parseInt(stockQuantity, 10);
   if (warehouseLocation) body.warehouse_location = warehouseLocation;
-  return await apiFetch(`${API.INVENTORY}/inventory/${productId}`, {
+  return await apiFetch(`${API.INVENTORY}/${productId}`, {
     method: 'PATCH',
     body,
   });
@@ -257,7 +257,7 @@ async function updateInventoryStock(productId, stockQuantity, warehouseLocation 
  * Updates an existing product's details in Product Service (PUT /products/{product_id}).
  */
 async function updateProduct(productId, productData) {
-  return await apiFetch(`${API.PRODUCT}/products/${productId}`, {
+  return await apiFetch(`${API.PRODUCT}/${productId}`, {
     method: 'PUT',
     body: productData,
   });
@@ -401,7 +401,7 @@ function statusBadge(status) {
  */
 async function getLiveInventoryStock(productId) {
   try {
-    const data = await apiFetch(`${API.INVENTORY}/inventory/${productId}`);
+    const data = await apiFetch(`${API.INVENTORY}/${productId}`);
     return (data && typeof data.stock_quantity === 'number') ? data.stock_quantity : 0;
   } catch (_) {
     return 0;
@@ -414,7 +414,7 @@ async function getLiveInventoryStock(productId) {
  */
 async function getLiveInventoryMap() {
   try {
-    const inventoryList = await apiFetch(`${API.INVENTORY}/inventory?limit=200`);
+    const inventoryList = await apiFetch(`${API.INVENTORY}?limit=200`);
     const map = {};
     if (Array.isArray(inventoryList)) {
       inventoryList.forEach(item => {

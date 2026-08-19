@@ -282,7 +282,7 @@
       btn.disabled = true;
       btn.textContent = 'Creating account…';
       try {
-        await apiFetch(`${API.USER}/users`, {
+        await apiFetch(API.USER, {
           method: 'POST',
           body: {
             full_name: document.getElementById('reg-name').value.trim(),

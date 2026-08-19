@@ -512,8 +512,8 @@
         const params = new URLSearchParams({ limit: 100 });
         if (status) params.set('status', status);
 
-        // Fetch from Order Service (port 8003)
-        const orders = await apiFetch(`${API.ORDER}/orders?${params}`);
+        // Fetch from Order Service
+        const orders = await apiFetch(`${API.ORDER}?${params}`);
         document.getElementById('stat-orders').textContent = orders.length;
         document.getElementById('stat-pending').textContent = orders.filter(o => o.status === 'pending').length;
 
@@ -551,8 +551,8 @@
 
     async function submitStatusUpdate() {
       try {
-        // PATCH /orders/{id}/status on Order Service (port 8003)
-        await apiFetch(`${API.ORDER}/orders/${currentOrderId}/status`, {
+        // PATCH /orders/{id}/status on Order Service
+        await apiFetch(`${API.ORDER}/${currentOrderId}/status`, {
           method: 'PATCH',
           body: { status: document.getElementById('new-status').value },
         });
@@ -571,7 +571,7 @@
       const tbody = document.getElementById('products-tbody');
       tbody.innerHTML = '<tr class="loading-row"><td colspan="6">Loading products…</td></tr>';
       try {
-        const products = await apiFetch(`${API.PRODUCT}/products?limit=200`);
+        const products = await apiFetch(`${API.PRODUCT}?limit=200`);
         if (!Array.isArray(products) || products.length === 0) {
           tbody.innerHTML = `<tr><td colspan="6" style="padding:var(--sp-8);text-align:center;color:var(--color-slate-400);">No products found. Add one using the button above.</td></tr>`;
           return;
@@ -664,8 +664,8 @@
       tbody.innerHTML = '<tr class="loading-row"><td colspan="5">Loading…</td></tr>';
       try {
         const [productsResult, inventoryResult] = await Promise.allSettled([
-          apiFetch(`${API.PRODUCT}/products?limit=200`),
-          apiFetch(`${API.INVENTORY}/inventory?limit=200`),
+          apiFetch(`${API.PRODUCT}?limit=200`),
+          apiFetch(`${API.INVENTORY}?limit=200`),
         ]);
 
         const products = (productsResult.status === 'fulfilled' && Array.isArray(productsResult.value)) ? productsResult.value : [];
@@ -831,8 +831,8 @@
       }
 
       try {
-        // 1. Create product in Product Service (port 8002)
-        const product = await apiFetch(`${API.PRODUCT}/products`, {
+        // 1. Create product in Product Service
+        const product = await apiFetch(`${API.PRODUCT}`, {
           method: 'POST',
           body: {
             name: productName,
@@ -843,9 +843,9 @@
           },
         });
 
-        // 2. Register initial inventory record in Inventory Service (port 8004)
+        // 2. Register initial inventory record in Inventory Service
         try {
-          await apiFetch(`${API.INVENTORY}/inventory`, {
+          await apiFetch(`${API.INVENTORY}`, {
             method: 'POST',
             body: {
               product_id: product.id,
@@ -882,7 +882,7 @@
 
       // 1. Issue DELETE request to Product Service
       try {
-        const pRes = await fetch(`${API.PRODUCT}/products/${productId}`, {
+        const pRes = await fetch(`${API.PRODUCT}/${productId}`, {
           method: 'DELETE',
           headers: session.getToken() ? { 'Authorization': `Bearer ${session.getToken()}` } : {},
         });
@@ -892,7 +892,7 @@
 
       // 2. Issue DELETE request to Inventory Service
       try {
-        const invRes = await fetch(`${API.INVENTORY}/inventory/${productId}`, {
+        const invRes = await fetch(`${API.INVENTORY}/${productId}`, {
           method: 'DELETE',
           headers: session.getToken() ? { 'Authorization': `Bearer ${session.getToken()}` } : {},
         });
@@ -919,8 +919,8 @@
       const tbody = document.getElementById('users-tbody');
       tbody.innerHTML = '<tr class="loading-row"><td colspan="7">Loading…</td></tr>';
       try {
-        // Fetch from User Service (port 8001)
-        const users = await apiFetch(`${API.USER}/users`);
+        // Fetch from User Service
+        const users = await apiFetch(`${API.USER}`);
         document.getElementById('stat-users').textContent = users.length;
 
         if (users.length === 0) {
@@ -962,7 +962,7 @@
       }
       if (!confirm(`Permanently delete user #${userId}?`)) return;
       try {
-        await apiFetch(`${API.USER}/users/${userId}`, { method: 'DELETE' });
+        await apiFetch(`${API.USER}/${userId}`, { method: 'DELETE' });
         showToast(`User #${userId} deleted.`, 'success');
         loadUsers();
       } catch (err) {
@@ -974,9 +974,9 @@
     async function loadStats() {
       try {
         const [orders, users, inventory] = await Promise.allSettled([
-          apiFetch(`${API.ORDER}/orders?limit=200`),
-          apiFetch(`${API.USER}/users?limit=200`),
-          apiFetch(`${API.INVENTORY}/inventory?limit=200`),
+          apiFetch(`${API.ORDER}?limit=200`),
+          apiFetch(`${API.USER}?limit=200`),
+          apiFetch(`${API.INVENTORY}?limit=200`),
         ]);
         if (orders.status === 'fulfilled') {
           document.getElementById('stat-orders').textContent = orders.value.length;
