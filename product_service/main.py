@@ -141,6 +141,8 @@ def health_check():
     tags=["Products"],
     summary="Create a new product",
 )
+@app.post("", response_model=ProductResponse, status_code=status.HTTP_201_CREATED, include_in_schema=False)
+@app.post("/products/products", response_model=ProductResponse, status_code=status.HTTP_201_CREATED, include_in_schema=False)
 def create_product(payload: ProductCreate, db: Session = Depends(get_db)):
     """Adds a new product to the catalogue. SKU must be unique if provided."""
     if payload.sku:
@@ -160,6 +162,8 @@ def create_product(payload: ProductCreate, db: Session = Depends(get_db)):
     tags=["Products"],
     summary="List all products",
 )
+@app.get("", response_model=List[ProductResponse], include_in_schema=False)
+@app.get("/products/products", response_model=List[ProductResponse], include_in_schema=False)
 def list_products(
     category: Optional[str] = Query(default=None, description="Filter by category"),
     skip: int = Query(default=0, ge=0),
@@ -179,6 +183,7 @@ def list_products(
     tags=["Products"],
     summary="Get a product by ID",
 )
+@app.get("/{product_id}", response_model=ProductResponse, include_in_schema=False)
 def get_product(product_id: int, db: Session = Depends(get_db)):
     product = db.query(Product).filter(Product.id == product_id).first()
     if not product:
@@ -192,12 +197,14 @@ def get_product(product_id: int, db: Session = Depends(get_db)):
     tags=["Products"],
     summary="Update a product",
 )
+@app.put("/{product_id}", response_model=ProductResponse, include_in_schema=False)
 @app.patch(
     "/products/{product_id}",
     response_model=ProductResponse,
     tags=["Products"],
     summary="Partially update a product",
 )
+@app.patch("/{product_id}", response_model=ProductResponse, include_in_schema=False)
 def update_product(product_id: int, payload: ProductUpdate, db: Session = Depends(get_db)):
     """Partially updates product fields. Only provided fields are changed."""
     product = db.query(Product).filter(Product.id == product_id).first()
@@ -216,6 +223,7 @@ def update_product(product_id: int, payload: ProductUpdate, db: Session = Depend
     tags=["Products"],
     summary="Delete a product",
 )
+@app.delete("/{product_id}", status_code=status.HTTP_204_NO_CONTENT, include_in_schema=False)
 def delete_product(product_id: int, db: Session = Depends(get_db)):
     product = db.query(Product).filter(Product.id == product_id).first()
     if not product:

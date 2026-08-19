@@ -174,6 +174,8 @@ def login(credentials: LoginRequest, db: Session = Depends(get_db)):
     summary="Register a new user",
 )
 @app.post("", response_model=UserResponse, status_code=status.HTTP_201_CREATED, include_in_schema=False)
+@app.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED, include_in_schema=False)
+@app.post("/users/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED, include_in_schema=False)
 @app.post("/users/users", response_model=UserResponse, status_code=status.HTTP_201_CREATED, include_in_schema=False)
 def register_user(payload: UserCreate, db: Session = Depends(get_db)):
     """

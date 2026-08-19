@@ -72,6 +72,8 @@ def health_check():
     tags=["Orders"],
     summary="Create a new order (JWT required)",
 )
+@app.post("", response_model=OrderResponse, status_code=status.HTTP_201_CREATED, include_in_schema=False)
+@app.post("/orders/orders", response_model=OrderResponse, status_code=status.HTTP_201_CREATED, include_in_schema=False)
 def create_order(
     payload: OrderCreate,
     db: Session = Depends(get_db),
@@ -79,15 +81,6 @@ def create_order(
 ):
     """
     Places a new order for the authenticated user.
-
-    **Requires:** `Authorization: Bearer <JWT>` header.
-
-    **Event-Driven Flow (Phase 2):**
-    1. Order is persisted to the orders.db SQLite database.
-    2. An `OrderPlacedEvent` JSON message is published to the AWS SQS queue
-       (`SQS_QUEUE_URL` env var). The Inventory Service's background thread
-       picks this up and deducts stock asynchronously.
-    3. If SQS is not configured, a warning is logged but the order still succeeds.
     """
     total = sum(item.quantity * item.unit_price for item in payload.items)
     order = Order(
@@ -193,6 +186,8 @@ def create_order(
     tags=["Orders"],
     summary="List all orders",
 )
+@app.get("", response_model=List[OrderResponse], include_in_schema=False)
+@app.get("/orders/orders", response_model=List[OrderResponse], include_in_schema=False)
 def list_orders(
     user_id: Optional[int] = Query(default=None, description="Filter by user ID"),
     status_filter: Optional[str] = Query(default=None, alias="status", description="Filter by status"),
@@ -215,6 +210,7 @@ def list_orders(
     tags=["Orders"],
     summary="Get an order by ID",
 )
+@app.get("/{order_id}", response_model=OrderResponse, include_in_schema=False)
 def get_order(order_id: int, db: Session = Depends(get_db)):
     order = db.query(Order).filter(Order.id == order_id).first()
     if not order:
@@ -228,6 +224,7 @@ def get_order(order_id: int, db: Session = Depends(get_db)):
     tags=["Orders"],
     summary="Update order status",
 )
+@app.patch("/{order_id}/status", response_model=OrderResponse, include_in_schema=False)
 def update_order_status(order_id: int, payload: OrderStatusUpdate, db: Session = Depends(get_db)):
     """Transitions an order to a new status (admin action). Performs Saga compensation on cancellation."""
     if payload.status not in VALID_STATUSES:
@@ -278,6 +275,7 @@ def update_order_status(order_id: int, payload: OrderStatusUpdate, db: Session =
     tags=["Orders"],
     summary="Get order history for a user",
 )
+@app.get("/user/{user_id}", response_model=List[OrderResponse], include_in_schema=False)
 def get_user_order_history(user_id: int, db: Session = Depends(get_db)):
     """Returns the complete order history for a specific user, newest first."""
     return db.query(Order).filter(Order.user_id == user_id).order_by(Order.created_at.desc()).all()

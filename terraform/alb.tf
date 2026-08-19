@@ -55,7 +55,7 @@ resource "aws_lb_target_group" "user_service" {
 
   health_check {
     enabled             = true
-    path                = "/health"
+    path                = "/users/health"
     port                = "8001"
     protocol            = "HTTP"
     matcher             = "200"
@@ -80,7 +80,7 @@ resource "aws_lb_target_group" "product_service" {
 
   health_check {
     enabled             = true
-    path                = "/health"
+    path                = "/products/health"
     port                = "8002"
     protocol            = "HTTP"
     matcher             = "200"
@@ -105,7 +105,7 @@ resource "aws_lb_target_group" "order_service" {
 
   health_check {
     enabled             = true
-    path                = "/health"
+    path                = "/orders/health"
     port                = "8003"
     protocol            = "HTTP"
     matcher             = "200"
@@ -130,7 +130,7 @@ resource "aws_lb_target_group" "inventory_service" {
 
   health_check {
     enabled             = true
-    path                = "/health"
+    path                = "/inventory/health"
     port                = "8004"
     protocol            = "HTTP"
     matcher             = "200"

@@ -114,6 +114,8 @@ def health_check():
     tags=["Inventory"],
     summary="Add a product to inventory",
 )
+@app.post("", response_model=InventoryItemResponse, status_code=status.HTTP_201_CREATED, include_in_schema=False)
+@app.post("/inventory/inventory", response_model=InventoryItemResponse, status_code=status.HTTP_201_CREATED, include_in_schema=False)
 def add_inventory_item(payload: InventoryItemCreate, db: Session = Depends(get_db)):
     """Registers a product in the inventory with an initial stock quantity."""
     existing = db.query(InventoryItem).filter(InventoryItem.product_id == payload.product_id).first()
@@ -132,6 +134,8 @@ def add_inventory_item(payload: InventoryItemCreate, db: Session = Depends(get_d
     tags=["Inventory"],
     summary="View all inventory",
 )
+@app.get("", response_model=List[InventoryItemResponse], include_in_schema=False)
+@app.get("/inventory/inventory", response_model=List[InventoryItemResponse], include_in_schema=False)
 def list_inventory(
     skip: int = Query(default=0, ge=0),
     limit: int = Query(default=50, ge=1, le=200),
@@ -147,6 +151,7 @@ def list_inventory(
     tags=["Inventory"],
     summary="Get stock for a specific product",
 )
+@app.get("/{product_id}", response_model=InventoryItemResponse, include_in_schema=False)
 def get_inventory_item(product_id: int, db: Session = Depends(get_db)):
     item = db.query(InventoryItem).filter(InventoryItem.product_id == product_id).first()
     if not item:
@@ -160,6 +165,7 @@ def get_inventory_item(product_id: int, db: Session = Depends(get_db)):
     tags=["Inventory"],
     summary="Restock a product (creates inventory record if not found)",
 )
+@app.patch("/{product_id}/restock", response_model=InventoryItemResponse, include_in_schema=False)
 def restock_item(product_id: int, quantity: int = Query(..., gt=0), db: Session = Depends(get_db)):
     """Adds stock to an existing inventory record. If not found, creates a new inventory record."""
     item = db.query(InventoryItem).filter(InventoryItem.product_id == product_id).first()
@@ -184,12 +190,14 @@ def restock_item(product_id: int, quantity: int = Query(..., gt=0), db: Session 
     tags=["Inventory"],
     summary="Directly update stock level and inventory details",
 )
+@app.patch("/{product_id}", response_model=InventoryItemResponse, include_in_schema=False)
 @app.put(
     "/inventory/{product_id}",
     response_model=InventoryItemResponse,
     tags=["Inventory"],
     summary="Directly update stock level and inventory details",
 )
+@app.put("/{product_id}", response_model=InventoryItemResponse, include_in_schema=False)
 def update_stock(product_id: int, payload: UpdateStockSchema, db: Session = Depends(get_db)):
     """Overwrites stock quantity directly or updates warehouse location."""
     item = db.query(InventoryItem).filter(InventoryItem.product_id == product_id).first()
@@ -218,6 +226,7 @@ def update_stock(product_id: int, payload: UpdateStockSchema, db: Session = Depe
     tags=["Inventory"],
     summary="Deduct stock for product items",
 )
+@app.post("/deduct", tags=["Inventory"], include_in_schema=False)
 def deduct_stock(payload: StockDeductRequest, db: Session = Depends(get_db)):
     """
     Deducts stock for items provided in payload.
