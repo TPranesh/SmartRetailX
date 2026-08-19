@@ -69,16 +69,29 @@ SEED_USERS = [
 
 
 def seed_users(db: Session) -> None:
-    """Inserts default users on first startup if the table is empty."""
-    if db.query(User).count() == 0:
-        for rec in SEED_USERS:
-            plain_pw = rec.pop("password")
-            user = User(**rec, hashed_password=hash_password(plain_pw))
-            db.add(user)
-        db.commit()
-        logger.info("Seeded %d default user accounts.", len(SEED_USERS))
-    else:
-        logger.info("Users table already populated — skipping seed.")
+    """Inserts default users on first startup if the table is empty or missing default accounts."""
+    try:
+        if db.query(User).count() == 0:
+            for user_data in SEED_USERS:
+                rec = user_data.copy()
+                plain_pw = rec.pop("password")
+                user = User(**rec, hashed_password=hash_password(plain_pw))
+                db.add(user)
+            db.commit()
+            logger.info("Seeded %d default user accounts.", len(SEED_USERS))
+        else:
+            for user_data in SEED_USERS:
+                rec = user_data.copy()
+                plain_pw = rec.pop("password")
+                existing = db.query(User).filter(User.email == rec["email"]).first()
+                if not existing:
+                    user = User(**rec, hashed_password=hash_password(plain_pw))
+                    db.add(user)
+                    logger.info("Seeded missing default account: %s", rec["email"])
+            db.commit()
+    except Exception as err:
+        logger.error("Error during user database seeding: %s", err)
+        db.rollback()
 
 
 # ── Startup ───────────────────────────────────────────────────────────────────

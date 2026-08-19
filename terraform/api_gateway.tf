@@ -7,13 +7,9 @@ resource "aws_apigatewayv2_api" "http_api" {
   description   = "Central API Gateway entry point for SmartRetailX microservices"
 
   cors_configuration {
-    allow_origins = [
-      "https://${aws_cloudfront_distribution.frontend_cdn.domain_name}",
-      "http://localhost",
-      "*"
-    ]
-    allow_methods = ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
-    allow_headers = ["Content-Type", "Authorization", "X-Amz-Date", "X-Api-Key", "X-Amz-Security-Token"]
+    allow_origins = ["*"]
+    allow_methods = ["*"]
+    allow_headers = ["*"]
     max_age       = 300
   }
 
