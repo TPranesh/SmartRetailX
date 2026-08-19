@@ -133,46 +133,4 @@ resource "aws_iam_role_policy_attachment" "ecs_task_sqs_attachment" {
   policy_arn = aws_iam_policy.sqs_access.arn
 }
 
-# ── ECS Fargate Task Definition Example (Order Service) ──────────────────────
-resource "aws_ecs_task_definition" "order_service" {
-  family                   = "smartretailx-order-service"
-  requires_compatibilities = ["FARGATE"]
-  network_mode             = "awsvpc"
-  cpu                      = 256
-  memory                   = 512
-  execution_role_arn       = aws_iam_role.ecs_execution_role.arn
-  task_role_arn            = aws_iam_role.ecs_task_role.arn
 
-  container_definitions = jsonencode([
-    {
-      name      = "order-service"
-      image     = "smartretailx/order-service:latest"
-      essential = true
-      portMappings = [
-        {
-          containerPort = 8003
-          hostPort      = 8003
-        }
-      ]
-      environment = [
-        { name = "PYTHONPATH", value = "/app" },
-        { name = "SQS_QUEUE_URL", value = aws_sqs_queue.order_events.url },
-        { name = "AWS_REGION", value = var.aws_region },
-        { name = "DATABASE_URL", value = "postgresql://${var.db_username}:${var.db_password}@${aws_db_instance.postgres.endpoint}/${var.db_name}" }
-      ]
-      logConfiguration = {
-        logDriver = "awslogs"
-        options = {
-          "awslogs-group"         = aws_cloudwatch_log_group.ecs_order_logs.name
-          "awslogs-region"        = var.aws_region
-          "awslogs-stream-prefix" = "order-service"
-        }
-      }
-    }
-  ])
-
-  tags = {
-    Environment = var.environment
-    Service     = "OrderService"
-  }
-}
